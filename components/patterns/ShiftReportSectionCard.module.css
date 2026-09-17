@@ -1,0 +1,427 @@
+/* ============================================================
+   ShiftReportSectionCard — one collapsible card in the desktop
+   End of Shift Report (Figma fileKey 0UJDRcrFiXkn16yfc2MUEW,
+   node 174:34927 "Details"). Light theme only — this page has no
+   dark-theme pairing in Figma.
+   ============================================================ */
+
+.card {
+  background-color: var(--color-neutral-100);
+  border-radius: 8px;
+  box-shadow: var(--shadow-lt-card);
+  overflow: hidden;
+  scroll-margin-top: 24px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 84px;
+  flex-shrink: 0;
+  gap: 32px;
+  padding: 0 20px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+}
+
+.titleRow {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+  gap: 16px;
+}
+
+.iconChip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  font-size: 20px;
+}
+
+.titleGroup {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.title {
+  font-family: var(--type-h2-family);
+  font-weight: var(--type-h2-weight);
+  font-size: var(--type-h2-size);
+  color: var(--color-text-lt-default);
+}
+
+.headerCaption {
+  font-family: var(--type-body-md-family);
+  font-size: var(--type-body-md-size);
+  line-height: var(--type-body-md-leading);
+  color: var(--color-text-lt-grey);
+}
+
+.headerSubtitle {
+  font-family: var(--type-body-md-family);
+  font-size: var(--type-body-md-size);
+  color: var(--color-text-lt-grey);
+  white-space: nowrap;
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-shrink: 0;
+}
+
+.noteCount {
+  font-family: var(--type-body-md-family);
+  font-weight: var(--type-body-md-weight);
+  font-size: var(--type-body-md-size);
+  color: var(--color-neutral-500);
+  white-space: nowrap;
+}
+
+.noteCountDone {
+  font-family: var(--type-body-md-family);
+  font-weight: var(--type-body-md-weight);
+  font-size: var(--type-body-md-size);
+  color: var(--color-text-lt-grey);
+}
+
+.checkIcon {
+  font-size: 20px;
+  color: var(--color-neutral-500);
+}
+
+.checkIconDone {
+  color: var(--color-success-700);
+}
+
+.chevron {
+  font-size: 16px;
+  color: var(--color-text-lt-blue);
+  transition: transform 220ms ease;
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+/* Smart-animate the section body open/closed: a grid track sized in `fr`
+   units can transition (unlike `height`, which can't animate to/from
+   `auto`), so collapsing is just 1fr -> 0fr on this wrapper. The body
+   itself stays mounted the whole time — bodyInner's overflow:hidden clips
+   it to nothing at 0fr, it just never unmounts (composer drafts, edit
+   state, etc. survive a collapse/reopen instead of resetting). */
+.bodyWrap {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 260ms ease;
+}
+
+.bodyWrap[data-open="true"] {
+  grid-template-rows: 1fr;
+}
+
+.bodyInner {
+  overflow: hidden;
+  min-height: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chevron,
+  .bodyWrap {
+    transition-duration: 0.01ms;
+  }
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  padding: 0 24px 24px;
+}
+
+/* ---------------- Manager Notes ---------------- */
+
+.notesGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.notesDivider {
+  height: 1px;
+  background-color: var(--color-neutral-300);
+}
+
+.notesZeroState {
+  font-family: var(--type-body-md-family);
+  font-size: var(--type-body-md-size);
+  color: var(--color-text-lt-grey);
+}
+
+.notesList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.noteCard {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  border-radius: 8px;
+  background-color: var(--color-neutral-200);
+}
+
+.noteTopRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.noteAvatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  background-color: var(--color-neutral-700);
+  flex-shrink: 0;
+}
+
+.noteName {
+  font-family: var(--type-h3-family);
+  font-weight: var(--type-h3-weight);
+  font-size: 16px;
+  color: var(--color-text-lt-default);
+}
+
+.noteTimestamp {
+  font-family: var(--type-body-md-family);
+  font-size: var(--type-body-md-size);
+  color: var(--color-text-lt-grey);
+}
+
+.noteMenuWrap {
+  position: relative;
+  margin-left: auto;
+}
+
+.noteMenuButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: none;
+  color: var(--color-text-lt-grey);
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.noteMenuButton:hover {
+  background-color: var(--color-neutral-300);
+}
+
+.noteMenu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  min-width: 120px;
+  padding: 4px;
+  border-radius: 4px;
+  background-color: var(--color-neutral-100);
+  box-shadow: var(--shadow-lt-popup-menu);
+}
+
+.noteMenuItem {
+  padding: 8px 12px;
+  border: none;
+  background: none;
+  border-radius: 4px;
+  text-align: left;
+  font-family: var(--type-body-md-family);
+  font-size: var(--type-body-md-size);
+  color: var(--color-text-lt-default);
+  cursor: pointer;
+}
+
+.noteMenuItem:hover {
+  background-color: var(--color-neutral-200);
+}
+
+.noteMenuItemDanger {
+  color: var(--color-text-lt-danger);
+}
+
+.noteText {
+  font-family: var(--type-body-lg-family);
+  font-size: var(--type-body-lg-size);
+  line-height: var(--type-body-lg-leading);
+  color: var(--color-text-lt-default);
+  white-space: pre-wrap;
+}
+
+.noteTagRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.noteTag {
+  height: 24px;
+  padding: 6px 12px;
+  border-radius: 4px;
+  background-color: var(--wash-primary-blue-15);
+  color: var(--color-text-lt-blue);
+  font-family: var(--type-h4-family);
+  font-weight: var(--type-h4-weight);
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+}
+
+/* ---------------- Composer ---------------- */
+
+.composer {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  border-radius: 8px;
+  background-color: var(--color-neutral-200);
+}
+
+.textarea {
+  min-height: 96px;
+  padding: 18px 16px;
+  border: 1px solid var(--color-neutral-400);
+  border-radius: 4px;
+  background-color: var(--color-neutral-100);
+  color: var(--color-text-lt-default);
+  font-family: var(--type-body-md-family);
+  font-size: 16px;
+  line-height: var(--type-body-md-leading);
+  resize: vertical;
+}
+
+.textarea::placeholder {
+  color: var(--color-neutral-500);
+}
+
+.tagPickerRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+
+.tagPickerLabel {
+  font-family: var(--type-body-md-family);
+  font-size: var(--type-body-md-size);
+  color: var(--color-text-lt-grey);
+  white-space: nowrap;
+}
+
+.tagOptionsRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tagOption {
+  padding: 8px;
+  border: 1px solid var(--color-neutral-300);
+  border-radius: 4px;
+  background-color: var(--wash-neutral-15);
+  color: var(--color-neutral-500);
+  font-family: var(--type-h4-family);
+  font-weight: var(--type-h4-weight);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.tagOption:hover {
+  border-color: var(--color-neutral-400);
+}
+
+.tagOptionSelected {
+  background-color: var(--wash-primary-blue-15);
+  border-color: var(--color-text-lt-blue);
+  color: var(--color-text-lt-blue);
+}
+
+.composerFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.composerActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.addNoteButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 4px;
+  background-color: var(--color-primary-500);
+  color: var(--color-text-lt-white);
+  font-family: var(--type-h4-family);
+  font-weight: var(--type-h4-weight);
+  font-size: var(--type-h4-size);
+  cursor: pointer;
+}
+
+.addNoteButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.addNoteButton:hover:not(:disabled) {
+  background-color: var(--color-primary-300);
+}
+
+.cancelEditButton {
+  height: 40px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 4px;
+  background: none;
+  color: var(--color-text-lt-grey);
+  font-family: var(--type-h4-family);
+  font-weight: var(--type-h4-weight);
+  font-size: var(--type-h4-size);
+  cursor: pointer;
+}
+
+.cancelEditButton:hover {
+  color: var(--color-text-lt-default);
+}

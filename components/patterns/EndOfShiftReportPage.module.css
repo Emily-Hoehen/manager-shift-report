@@ -1,0 +1,630 @@
+/* ============================================================
+   EndOfShiftReportPage — desktop "Manage Shift / End of Shift
+   Report" (Figma fileKey 0UJDRcrFiXkn16yfc2MUEW, node 174:34927
+   "Details" — shift-in-progress state). Light theme only — Figma
+   has no dark pairing for this frame.
+   ============================================================ */
+
+.page {
+  height: 100vh;
+  overflow-y: auto;
+  background-color: var(--surface-lt-page);
+  color: var(--color-text-lt-default);
+  /* Keeps the page scrollable while hiding the scrollbar's own chrome — same convention as Nav.module.css's .nav. */
+  scrollbar-width: none;
+}
+
+.page::-webkit-scrollbar {
+  display: none;
+}
+
+.main {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ---------------- Header: breadcrumb + date picker ---------------- */
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--type-h2-family);
+  font-weight: var(--type-h2-weight);
+  font-size: var(--type-h2-size);
+}
+
+.breadcrumbMuted {
+  color: var(--color-text-lt-grey);
+}
+
+.breadcrumbCurrent {
+  color: var(--color-text-lt-default);
+}
+
+.datePicker {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 12px;
+  border-radius: 4px;
+  background-color: var(--color-neutral-100);
+}
+
+.dateCaret {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border: none;
+  background: none;
+  color: var(--color-text-lt-blue);
+  font-size: 14px;
+  cursor: default;
+}
+
+.dateCaret:disabled {
+  opacity: 0.5;
+}
+
+.dateLabel {
+  font-family: var(--type-h4-family);
+  font-weight: var(--type-h4-weight);
+  font-size: 14px;
+  color: var(--color-text-lt-blue);
+  white-space: nowrap;
+}
+
+/* ---------------- Rollup: title + Complete action ---------------- */
+
+.rollup {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.rollupTitleGroup {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.rollupTitle {
+  font-family: var(--type-h1-family);
+  font-weight: var(--type-h1-weight);
+  font-size: var(--type-h1-size);
+  color: var(--color-text-lt-default);
+}
+
+.completedBadge {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.completedBadgeIcon {
+  font-size: 24px;
+  color: var(--color-text-lt-success);
+}
+
+.completedBadgeText {
+  display: flex;
+  flex-direction: column;
+}
+
+.completedBadgeTitle {
+  font-family: var(--type-h4-family);
+  font-weight: var(--type-h4-weight);
+  font-size: 14px;
+  color: var(--color-text-lt-default);
+}
+
+.completedBadgeCaption {
+  font-family: var(--type-body-sm-family);
+  font-size: var(--type-body-sm-size);
+  color: var(--color-text-lt-grey);
+}
+
+/* ---------------- Complete confirmation modal ---------------- */
+
+.confirmBody {
+  font-family: var(--type-body-md-family);
+  font-size: var(--type-body-md-size);
+  line-height: var(--type-body-md-leading);
+  color: var(--color-text-lt-grey);
+  margin-bottom: 20px;
+}
+
+.confirmActions {
+  display: flex;
+  gap: 12px;
+}
+
+/* ---------------- Two-column layout ---------------- */
+
+.columns {
+  display: flex;
+  align-items: flex-start;
+  gap: 32px;
+}
+
+.leftColumn {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ---------------- Shift Managers table ---------------- */
+
+.managersTable {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.managerRow {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 0;
+  border-radius: 8px;
+}
+
+.managerInfo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 222px;
+  flex-shrink: 0;
+}
+
+.managerAvatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  background-color: var(--color-neutral-300);
+  flex-shrink: 0;
+}
+
+.managerNameCol {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.managerName {
+  font-family: var(--type-h3-family);
+  font-weight: var(--type-h3-weight);
+  font-size: 16px;
+  color: var(--color-text-lt-default);
+}
+
+.managerRole {
+  font-family: var(--type-body-md-family);
+  font-size: var(--type-body-md-size);
+  color: var(--color-text-lt-grey);
+}
+
+.managerDivider {
+  width: 1px;
+  align-self: stretch;
+  background-color: var(--color-neutral-300);
+}
+
+.managerTimeCol {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.managerTimeValue {
+  font-family: var(--type-h3-family);
+  font-weight: var(--type-h3-weight);
+  font-size: 16px;
+  color: var(--color-text-lt-default);
+}
+
+.managerTimeLabel {
+  font-family: var(--type-body-md-family);
+  font-size: var(--type-body-md-size);
+  color: var(--color-text-lt-grey);
+}
+
+.managerCheckedInBadge {
+  font-family: var(--type-h4-family);
+  font-weight: var(--type-h4-weight);
+  font-size: var(--type-h4-size);
+  line-height: var(--type-h4-leading);
+  color: var(--color-text-lt-warning);
+}
+
+/* ---------------- Shared: captured-data groups ---------------- */
+
+.dataGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.dataBox {
+  padding: 20px 24px;
+  border-radius: 8px;
+  background-color: var(--color-neutral-200);
+}
+
+.dualBoxRow {
+  display: flex;
+  gap: 16px;
+}
+
+.dualBoxRow .dataBox {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ringStat {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-shrink: 0;
+}
+
+.ringWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ringPercentLabel {
+  position: absolute;
+  font-family: var(--type-h4-family);
+  font-weight: var(--type-h4-weight);
+  font-size: 20px;
+  color: var(--color-text-lt-default);
+}
+
+.ringStatText {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ringStatLabel {
+  font-family: var(--type-body-lg-family);
+  font-weight: var(--type-body-lg-weight);
+  font-size: var(--type-body-lg-size);
+  color: var(--color-text-lt-default);
+}
+
+.ringStatValueRow {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.ringStatValue {
+  font-family: var(--type-h2-family);
+  font-weight: var(--type-h2-weight);
+  font-size: 24px;
+  color: var(--color-text-lt-default);
+  line-height: 1;
+}
+
+.ringStatCaption {
+  font-family: var(--type-body-lg-family);
+  font-size: var(--type-body-lg-size);
+  color: var(--color-text-lt-grey);
+}
+
+/* ---------------- Hours and Headcount's own headcount row ---------------- */
+/* Figma fileKey 0UJDRcrFiXkn16yfc2MUEW, node 214:43608 — a single row,
+   vertical dividers between Scheduled Headcount / Actual Arrival / the
+   Total Absences group, but no dividers within that last group (Total
+   Absences, No Call/No Show, Call Outs just sit gap-16 apart). Labels stay
+   at this project's own Body/Large override rather than Figma's Body/
+   Medium — everything else (padding, gaps, dividers, grouping) matches
+   the node exactly. */
+
+.flatDataGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  padding-top: 20px;
+}
+
+.headcountRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 40px;
+}
+
+.headcountDivider {
+  width: 1px;
+  align-self: stretch;
+  background-color: var(--color-neutral-300);
+}
+
+.headcountItem {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.headcountItemFlex {
+  flex-shrink: 0;
+}
+
+.headcountItemFixed {
+  width: 125px;
+  flex-shrink: 0;
+}
+
+.headcountItemLabel {
+  font-family: var(--type-body-lg-family);
+  font-size: var(--type-body-lg-size);
+  color: var(--color-text-lt-default);
+  white-space: nowrap;
+}
+
+.headcountItemLabelMuted {
+  color: var(--color-text-lt-grey);
+}
+
+.headcountItemValue {
+  font-family: var(--type-h2-family);
+  font-weight: var(--type-h2-weight);
+  font-size: var(--type-h2-size);
+  color: var(--color-text-lt-default);
+}
+
+.headcountItemValueMuted {
+  color: var(--color-text-lt-grey);
+}
+
+.absencesGroup {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+/* ---------------- Area Coverage: metric + two-column legend ---------------- */
+/* Figma fileKey 0UJDRcrFiXkn16yfc2MUEW, node 214:43134 — the ring/value
+   block (reusing the shared .ringStat/.ringWrap/.ringPercentLabel/
+   .ringStatValueRow/.ringStatValue) sits beside two legend columns of
+   three and two rows, each row a colored bar + label (fixed width, so
+   both columns' values line up) + "N areas (P%)" value. */
+
+.coverageRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 40px;
+  flex-wrap: wrap;
+  padding-top: 32px;
+}
+
+.coverageLegendColumns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 78px;
+}
+
+.coverageLegendColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.coverageLegendItem {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.coverageLegendLabelGroup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 127px;
+  flex-shrink: 0;
+}
+
+.coverageLegendBar {
+  width: 4px;
+  height: 16px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.coverageLegendLabel {
+  font-family: var(--type-h4-family);
+  font-weight: var(--type-h4-weight);
+  font-size: 14px;
+  color: var(--color-text-lt-default);
+  white-space: nowrap;
+}
+
+.coverageLegendValue {
+  font-family: var(--type-body-md-family);
+  font-size: var(--type-body-md-size);
+  color: var(--color-text-lt-default);
+  white-space: nowrap;
+}
+
+.coverageLegendPercent {
+  color: var(--color-text-lt-grey);
+}
+
+/* ---------------- Quality: Scores / Report Its / Safety ---------------- */
+
+.qualityRowsGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  width: 100%;
+}
+
+.qualityColumnsRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 40px;
+  flex-wrap: wrap;
+  padding-top: 20px;
+}
+
+.qualityColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  flex: 1;
+  min-width: 200px;
+}
+
+.qualityGroupLabel {
+  font-family: var(--type-h4-family);
+  font-weight: var(--type-h4-weight);
+  font-size: var(--type-h4-size);
+  line-height: var(--type-h4-leading);
+  color: var(--color-text-lt-grey);
+}
+
+.scoresList {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.scoreChipGroup {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+  width: 100px;
+}
+
+.scoreChip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 8px 12px;
+  border-radius: 4px;
+  background-color: var(--color-text-lt-success);
+  color: var(--color-text-lt-white);
+  font-family: var(--type-h4-family);
+  font-weight: var(--type-h4-weight);
+  font-size: var(--type-h4-size);
+  line-height: var(--type-h4-leading);
+}
+
+.scoreChipText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.scoreChipLabel {
+  font-family: var(--type-h3-family);
+  font-weight: var(--type-h3-weight);
+  font-size: var(--type-h3-size);
+  line-height: var(--type-h3-leading);
+  color: var(--color-text-lt-default);
+  white-space: nowrap;
+}
+
+.scoreChipCaption {
+  font-family: var(--type-body-md-family);
+  font-size: var(--type-body-md-size);
+  color: var(--color-text-lt-grey);
+}
+
+.reportItsList {
+  display: flex;
+  align-items: flex-start;
+  gap: 32px;
+  flex-wrap: wrap;
+}
+
+.reportItRow {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+  width: 85px;
+}
+
+.reportItLabel {
+  font-family: var(--type-body-lg-family);
+  font-size: var(--type-body-lg-size);
+  color: var(--color-text-lt-default);
+  white-space: nowrap;
+}
+
+.reportItValue {
+  font-family: var(--type-h2-family);
+  font-weight: var(--type-h2-weight);
+  font-size: var(--type-h2-size);
+  color: var(--color-text-lt-default);
+}
+
+.safetyEmptyState {
+  font-family: var(--type-body-md-family);
+  font-size: var(--type-body-md-size);
+  color: var(--color-text-lt-default);
+}
+
+/* ---------------- Responsive ---------------- */
+
+@media (max-width: 1100px) {
+  .columns {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 900px) {
+  .dualBoxRow {
+    flex-direction: column;
+  }
+
+  .managerRow {
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .managerDivider {
+    display: none;
+  }
+
+  .rollup {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

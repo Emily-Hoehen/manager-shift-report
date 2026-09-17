@@ -280,6 +280,8 @@
   --wash-bubblegum-15: rgba(255, 128, 233, 0.15); /* Datavis Bubblegum/100 @15% */
   --wash-neutral-15: rgba(167, 177, 185, 0.15); /* Core/Neutral/500 @15% */
   --wash-neutral-300-15: rgba(223, 227, 230, 0.15); /* Core/Neutral/300 @15% — the report modals' circular icon-only close button. */
+  --wash-primary-blue-15: rgba(0, 132, 255, 0.15); /* Primary/500 @15% — desktop End of Shift Report's Area Coverage icon bubble (fileKey 0UJDRcrFiXkn16yfc2MUEW, node 216:43750). */
+  --wash-warning-solid-15: rgba(255, 193, 8, 0.15); /* Warning/500 @15% — same page's Hours and Headcount icon bubble. */
 
   /* -- Added for Manager App mobile dashboard (fileKey
      gtME8Hrbr497WEZi1U2HeZ, node 4:1289) — same hue-@15% formula

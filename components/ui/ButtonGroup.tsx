@@ -18,6 +18,14 @@ export type ButtonGroupProps<T extends string> = {
   variant?: ButtonGroupVariant;
   /** Overrides the segmented variant's sliding thumb color for one call site (e.g. Our Team's roster tabs), without changing the shared default everywhere else. */
   thumbColor?: string;
+  /** Overrides the segmented variant's active-option text color for one call site (e.g. a white thumb needs a colored label instead of the shared white-on-dark default). */
+  activeTextColor?: string;
+  /** Adds a subtle card shadow under the segmented thumb — for a light/white thumb that needs to lift off its track (a dark thumb reads as elevated without one). */
+  thumbElevated?: boolean;
+  /** Overrides the segmented variant's track background for one call site, without changing the shared default everywhere else. */
+  trackColor?: string;
+  /** Adds a subtle card shadow under the whole segmented track — for a toggle sitting directly on the page background rather than inside its own card. */
+  trackElevated?: boolean;
   "aria-label"?: string;
 };
 
@@ -42,6 +50,10 @@ export function ButtonGroup<T extends string>({
   theme = "light",
   variant = "pills",
   thumbColor,
+  activeTextColor,
+  thumbElevated,
+  trackColor,
+  trackElevated,
   ...rest
 }: ButtonGroupProps<T>) {
   const optionRefs = useRef<Partial<Record<T, HTMLButtonElement | null>>>({});
@@ -62,7 +74,21 @@ export function ButtonGroup<T extends string>({
   }, [value, variant, options]);
 
   return (
-    <div className={styles.group} data-theme={theme} data-variant={variant} role="group" aria-label={rest["aria-label"]}>
+    <div
+      className={styles.group}
+      data-theme={theme}
+      data-variant={variant}
+      role="group"
+      aria-label={rest["aria-label"]}
+      style={
+        variant === "segmented"
+          ? {
+              ...(trackColor ? { backgroundColor: trackColor } : {}),
+              ...(trackElevated ? { boxShadow: "var(--shadow-lt-card)" } : {}),
+            }
+          : undefined
+      }
+    >
       {variant === "segmented" && thumbRect && (
         <div
           className={styles.thumb}
@@ -70,6 +96,7 @@ export function ButtonGroup<T extends string>({
             transform: `translateX(${thumbRect.x}px)`,
             width: thumbRect.width,
             ...(thumbColor ? { backgroundColor: thumbColor } : {}),
+            ...(thumbElevated ? { boxShadow: "var(--shadow-lt-card)" } : {}),
           }}
           aria-hidden="true"
         />
@@ -86,6 +113,7 @@ export function ButtonGroup<T extends string>({
             className={[styles.option, isActive ? styles.optionActive : ""].filter(Boolean).join(" ")}
             aria-pressed={isActive}
             onClick={() => onChange(option.id)}
+            style={isActive && activeTextColor ? { color: activeTextColor } : undefined}
           >
             {option.icon}
             {option.label}

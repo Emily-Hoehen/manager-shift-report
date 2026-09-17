@@ -192,6 +192,14 @@ export function ChevronDownIcon({ className }: IconProps) {
   return fa("solid", "chevron-down", className);
 }
 
+export function ChevronUpIcon({ className }: IconProps) {
+  return fa("solid", "chevron-up", className);
+}
+
+export function PlaneIcon({ className }: IconProps) {
+  return fa("solid", "plane", className);
+}
+
 export function ChevronLeftIcon({ className }: IconProps) {
   return fa("solid", "chevron-left", className);
 }

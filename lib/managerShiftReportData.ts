@@ -22,12 +22,34 @@
 export type ShiftKey = "day" | "swing" | "graveyard";
 
 export const SHIFT_OPTIONS: { key: ShiftKey; label: string; timeRange: string }[] = [
-  { key: "day", label: "Day", timeRange: "6:00AM EST - 2:00PM EST" },
+  { key: "day", label: "Day", timeRange: "6:00AM EST - 2:30PM EST" },
   { key: "swing", label: "Swing", timeRange: "2:00PM EST - 10:00PM EST" },
   { key: "graveyard", label: "Graveyard", timeRange: "10:00PM EST - 6:00AM EST" },
 ];
 
 export const SHIFT_LABELS: Record<ShiftKey, string> = { day: "Day", swing: "Swing", graveyard: "Graveyard" };
+
+/** Each shift's real scheduled window in minutes-since-midnight — Day 6:00 AM-2:30 PM, Swing 2:00 PM-10:00 PM, Graveyard 10:00 PM-6:00 AM (crosses midnight). Device local time stands in for EDT throughout this file (see SHIFT_START_LABEL), so this is plain wall-clock math, not real timezone-aware instants. Shared by getShiftLiveStatus and shiftEndDate so the "Not Started"/"In Progress" display and the "time remaining" math never disagree about when a shift starts or ends. */
+export const SHIFT_SCHEDULE: Record<ShiftKey, { startMinutes: number; endMinutes: number }> = {
+  day: { startMinutes: 6 * 60, endMinutes: 14 * 60 + 30 },
+  swing: { startMinutes: 14 * 60, endMinutes: 22 * 60 },
+  graveyard: { startMinutes: 22 * 60, endMinutes: 6 * 60 },
+};
+
+export type ShiftLiveStatus = "notStarted" | "inProgress" | "ended";
+
+/** Whether shiftKey's own scheduled window (SHIFT_SCHEDULE) has started/ended yet against the real current moment — drives the web End of Shift Report's Side Panel "Shift Not Started" (grey timer) vs. "Shift in Progress" display, independent of any manager's own clock-in time or completedBy state. Graveyard's window crosses midnight, so it reads "in progress" on either side of midnight within its range rather than as one contiguous same-day span like Day/Swing. */
+export function getShiftLiveStatus(shiftKey: ShiftKey, date: Date = new Date()): ShiftLiveStatus {
+  const { startMinutes, endMinutes } = SHIFT_SCHEDULE[shiftKey];
+  const nowMinutes = minutesSinceMidnight(date);
+  if (startMinutes < endMinutes) {
+    if (nowMinutes < startMinutes) return "notStarted";
+    if (nowMinutes < endMinutes) return "inProgress";
+    return "ended";
+  }
+  // Wraps past midnight (graveyard) — "ended" isn't meaningful for a single wrapping window, so the only two states are whether it's currently running or hasn't started tonight yet.
+  return nowMinutes >= startMinutes || nowMinutes < endMinutes ? "inProgress" : "notStarted";
+}
 
 /** A representative check-in time for the current manager's own clockIn once they pick a shift on the Home screen's check-in sheet — the seed data's "5:59 AM EDT" is Day-shift-specific (see the file header comment), so Swing/Graveyard need their own stand-in start time instead of keeping that stale Day-shift value. */
 export const SHIFT_START_LABEL: Record<ShiftKey, string> = { day: "5:59 AM EDT", swing: "2:00 PM EDT", graveyard: "10:00 PM EDT" };
@@ -94,6 +116,30 @@ export function getTagColor(tag: string): { wash: string; color: string } {
   return TAG_COLOR_FALLBACK[hashTag(tag) % TAG_COLOR_FALLBACK.length];
 }
 
+/** Light-theme counterpart to DAILY_REPORT_TAG_COLORS — same washes (a translucent tint reads fine on either background), but the foreground text swaps each hue's "-100" dark-theme-legible step for its "-700"/"LT" step, since a bright -100 color is nearly illegible on this light page's own note cards. Exact tag → color matches from the Daily Report's note tags, same as getTagColor. */
+const DAILY_REPORT_TAG_COLORS_LIGHT: Record<string, { wash: string; color: string }> = {
+  "qr unreadable": { wash: "var(--wash-orange-15)", color: "var(--color-accent-lt-orange)" },
+  "4insite discrepancy": { wash: "var(--wash-pinkle-15)", color: "var(--color-accent-lt-pinkle)" },
+  staffing: { wash: "var(--wash-sky-blue-dark-15)", color: "var(--color-accent-lt-sky-blue)" },
+  "access restricted": { wash: "var(--wash-purple-15)", color: "var(--color-datavis-purple-700)" },
+};
+
+/** Light-theme counterpart to TAG_COLOR_FALLBACK — same hue-per-tag assignment (hashTag), swapped to LT-legible foreground steps. */
+const TAG_COLOR_FALLBACK_LIGHT: { wash: string; color: string }[] = [
+  { wash: "var(--wash-red-orange-15)", color: "var(--color-datavis-red-orange-700)" },
+  { wash: "var(--wash-bubblegum-15)", color: "var(--color-datavis-bubblegum-700)" },
+  { wash: "var(--wash-teal-15)", color: "var(--color-datavis-teal-700)" },
+  { wash: "var(--wash-warning-15)", color: "var(--color-accent-lt-warning)" },
+  { wash: "var(--wash-success-15)", color: "var(--color-accent-lt-success)" },
+];
+
+/** getTagColor's light-theme counterpart — the desktop End of Shift Report's own note tags (light page), vs. getTagColor's dark-theme pairing for the Manager App mobile equivalent. Same tag vocabulary, same per-tag hue assignment, LT-legible foreground. */
+export function getTagColorLight(tag: string): { wash: string; color: string } {
+  const exact = DAILY_REPORT_TAG_COLORS_LIGHT[tag.trim().toLowerCase()];
+  if (exact) return exact;
+  return TAG_COLOR_FALLBACK_LIGHT[hashTag(tag) % TAG_COLOR_FALLBACK_LIGHT.length];
+}
+
 export type ShiftNote = {
   id: string;
   managerId: string;
@@ -111,6 +157,8 @@ export type ShiftManager = {
   clockOut: string;
   totalTime: string;
   isResponsible: boolean;
+  /** Desktop End of Shift Report only — true once this manager has actually clocked out (shows their fixed clockOut/totalTime instead of a live-ticking "Time on Shift"). Omitted (or false) everywhere else, where every manager reads as still checked in. */
+  checkedOut?: boolean;
 };
 
 type SectionBase = {
@@ -135,7 +183,7 @@ export type AreaCoverageSection = SectionBase & {
   areasServiced: number;
   areasTotal: number;
   percentServiced: number;
-  breakdown: { notServiced: number; underServiced: number; fullyServiced: number; overServiced: number };
+  breakdown: { notServiced: number; underServiced: number; fullyServiced: number; overServiced: number; noFrequency: number };
 };
 
 export type ServiceCoverageSection = SectionBase & {
@@ -172,15 +220,17 @@ export type ShiftReportState = {
 /** The Manager App's own signed-in user (lib/managerAppData.ts's currentManager) — also this shift's Responsible Manager, so the demo's default path is the one that can actually complete the report. */
 export const CURRENT_MANAGER_ID = "william-guy";
 
-export const INITIAL_SHIFT_REPORT: ShiftReportState = {
-  shiftKey: "day",
-  managers: [
-    { id: "william-guy", name: "William Guy", role: "Senior Site Manager", avatar: "/william.png", clockIn: "5:59 AM EDT", clockOut: "2:00 PM EDT", totalTime: "8h 1min", isResponsible: true },
-    { id: "betty-rodriguez", name: "Betty Rodriguez", role: "Operations Manager", avatar: "/Betty.jpg", clockIn: "5:55 AM EDT", clockOut: "1:34 PM EDT", totalTime: "7h 39min", isResponsible: false },
-    { id: "edga-tacuri", name: "Edga Tacuri", role: "Site Supervisor", avatar: "/Edga.png", clockIn: "5:50 AM EDT", clockOut: "1:29 PM EDT", totalTime: "7h 39min", isResponsible: false },
-    { id: "carmen-ramos", name: "Carmen Ramos", role: "Site Supervisor", avatar: "/Carmen.png", clockIn: "5:59 AM EDT", clockOut: "1:40 PM EDT", totalTime: "7h 41min", isResponsible: false },
-  ],
-  sections: {
+/**
+ * A fresh copy of the shift report's own sample "captured data" —
+ * every shift (Day/Swing/Graveyard) tells the same illustrative
+ * numbers story, same convention as every other static sample in
+ * this file; what actually varies shift to shift is the manager
+ * roster below. Called once per shift record so each gets its own
+ * independent notes arrays, never a shared reference three shifts
+ * could accidentally mutate in lockstep.
+ */
+function buildSampleSections(): ShiftSections {
+  return {
     shiftNotes: {
       tagVocabulary: SHIFT_NOTE_TAGS,
       notes: [],
@@ -201,7 +251,7 @@ export const INITIAL_SHIFT_REPORT: ShiftReportState = {
       areasServiced: 750,
       areasTotal: 765,
       percentServiced: 98,
-      breakdown: { notServiced: 4, underServiced: 25, fullyServiced: 232, overServiced: 12 },
+      breakdown: { notServiced: 4, underServiced: 25, fullyServiced: 232, overServiced: 12, noFrequency: 12 },
       tagVocabulary: SHIFT_NOTE_TAGS,
       notes: [],
     },
@@ -217,13 +267,85 @@ export const INITIAL_SHIFT_REPORT: ShiftReportState = {
       internalAudit: { score: 4.87, count: 2, unit: "audits" },
       customerAudit: { score: 4.87, count: 1, unit: "audits" },
       reportIts: { submitted: 6, rejected: 1, acceptanceRate: 83 },
-      safety: { incidents: 1, reportStatus: "Incident Report Created" },
+      safety: { incidents: 0, reportStatus: "No Incidents Reported" },
       tagVocabulary: SHIFT_NOTE_TAGS,
       notes: [],
     },
+  };
+}
+
+export const INITIAL_SHIFT_REPORT: ShiftReportState = {
+  shiftKey: "day",
+  managers: [
+    { id: "william-guy", name: "William Guy", role: "Senior Site Manager", avatar: "/william.png", clockIn: "5:59 AM EDT", clockOut: "2:00 PM EDT", totalTime: "8h 1min", isResponsible: true },
+    { id: "betty-rodriguez", name: "Betty Rodriguez", role: "Operations Manager", avatar: "/Betty.jpg", clockIn: "5:55 AM EDT", clockOut: "1:34 PM EDT", totalTime: "7h 39min", isResponsible: false },
+    { id: "edga-tacuri", name: "Edga Tacuri", role: "Site Supervisor", avatar: "/Edga.png", clockIn: "5:50 AM EDT", clockOut: "1:29 PM EDT", totalTime: "7h 39min", isResponsible: false },
+    { id: "carmen-ramos", name: "Carmen Ramos", role: "Site Supervisor", avatar: "/Carmen.png", clockIn: "5:59 AM EDT", clockOut: "1:40 PM EDT", totalTime: "7h 41min", isResponsible: false },
+  ],
+  sections: buildSampleSections(),
+  completedBy: null,
+  completedAt: null,
+};
+
+/** Same Swing/Graveyard manager rosters (names/roles/avatars) as the Map feature's own Daily Report (lib/mapPageData.ts's shiftManagers.swing/.graveyard) — clock times staggered around each shift's own start/end (SHIFT_OPTIONS) the same way Day's roster is. */
+const SWING_SHIFT_REPORT: ShiftReportState = {
+  shiftKey: "swing",
+  managers: [
+    { id: "carlos-muruzumbay", name: "Carlos Muruzumbay", role: "Shift Manager", avatar: "/Carlos.png", clockIn: "1:59 PM EDT", clockOut: "10:00 PM EDT", totalTime: "8h 1min", isResponsible: true },
+    { id: "tonya-breland", name: "Tonya Breland", role: "Site Supervisor", avatar: "/Tonya.png", clockIn: "1:55 PM EDT", clockOut: "9:34 PM EDT", totalTime: "7h 39min", isResponsible: false },
+    { id: "kadeem-byfield", name: "Kadeem Byfield", role: "Site Supervisor", avatar: "/Kadeem.png", clockIn: "1:50 PM EDT", clockOut: "9:29 PM EDT", totalTime: "7h 39min", isResponsible: false },
+  ],
+  sections: buildSampleSections(),
+  completedBy: null,
+  completedAt: null,
+};
+
+const GRAVEYARD_SHIFT_REPORT: ShiftReportState = {
+  shiftKey: "graveyard",
+  managers: [
+    { id: "braulio-abreu", name: "Braulio Abreu", role: "Shift Manager", avatar: "/Braulio.png", clockIn: "9:59 PM EDT", clockOut: "6:00 AM EDT", totalTime: "8h 1min", isResponsible: true },
+    { id: "anabel-ramirez", name: "Anabel Ramirez", role: "Site Supervisor", avatar: "/Anabel.jpg", clockIn: "9:55 PM EDT", clockOut: "5:34 AM EDT", totalTime: "7h 39min", isResponsible: false },
+    { id: "david-padilla", name: "David Padilla", role: "Site Supervisor", avatar: "/David.png", clockIn: "9:50 PM EDT", clockOut: "5:29 AM EDT", totalTime: "7h 39min", isResponsible: false },
+  ],
+  sections: buildSampleSections(),
+  completedBy: null,
+  completedAt: null,
+};
+
+/** A seed note for one of Day's sections, attributed to its lead manager — every note-taking section needs at least one for `allSectionsHaveNotes` to actually permit completing the shift (see canComplete in EndOfShiftReportPage). */
+function daySeedNote(id: string, text: string, tags: string[] = []): ShiftNote {
+  return { id: `day-seed-${id}`, managerId: "william-guy", timestamp: "1:45 PM EDT", text, tags };
+}
+
+/** The desktop End of Shift Report's own copy of Day (6:00 AM - 2:30 PM) — every section already carries one seed note so the report is ready to complete the moment Day's real window actually ends (getShiftLiveStatus), but it loads uncompleted like Swing/Graveyard so the page's live "Shift in Progress"/"Shift Not Started" display reflects the real current time rather than a permanently-closed-out demo. Built as a spread onto INITIAL_SHIFT_REPORT (never a mutation of it), so the mobile Manager App's own copy of this same shift keeps its own independent, entirely-unseeded state. */
+const DAY_SHIFT_REPORT_SEEDED: ShiftReportState = {
+  ...INITIAL_SHIFT_REPORT,
+  sections: {
+    ...INITIAL_SHIFT_REPORT.sections,
+    shiftNotes: { ...INITIAL_SHIFT_REPORT.sections.shiftNotes, notes: [daySeedNote("shiftNotes", "Shift ran smoothly with no major issues to flag.")] },
+    hoursHeadcount: {
+      ...INITIAL_SHIFT_REPORT.sections.hoursHeadcount,
+      notes: [daySeedNote("hoursHeadcount", "Confirmed final headcount against the scheduled roster.", ["Staffing"])],
+    },
+    areaCoverage: {
+      ...INITIAL_SHIFT_REPORT.sections.areaCoverage,
+      notes: [daySeedNote("areaCoverage", "All areas serviced except two closed for maintenance.", ["Area Closed"])],
+    },
+    serviceCoverage: {
+      ...INITIAL_SHIFT_REPORT.sections.serviceCoverage,
+      notes: [daySeedNote("serviceCoverage", "Service completion came in ahead of the expected total for the day.")],
+    },
+    quality: { ...INITIAL_SHIFT_REPORT.sections.quality, notes: [daySeedNote("quality", "Quality scores held steady with previous shifts.")] },
   },
   completedBy: null,
   completedAt: null,
+};
+
+/** One independent ShiftReportState per shift — the web End of Shift Report's own Day/Swing/Graveyard toggle (Manage Shift's Rollup) switches which of these three is showing, each with its own roster, notes, and completion state. Keyed the same as SHIFT_OPTIONS/SHIFT_LABELS. */
+export const INITIAL_SHIFT_REPORTS: Record<ShiftKey, ShiftReportState> = {
+  day: DAY_SHIFT_REPORT_SEEDED,
+  swing: SWING_SHIFT_REPORT,
+  graveyard: GRAVEYARD_SHIFT_REPORT,
 };
 
 export function getManager(state: ShiftReportState, managerId: string): ShiftManager | undefined {
@@ -276,12 +398,15 @@ export function formatTightClockTime(clockTime: string): string {
   return clockTime.replace(/\s*(AM|PM)\b.*$/i, "$1").replace(/\s+/g, "");
 }
 
-/** Each shift's scheduled end hour, matching the same Day 6-14 / Swing 14-22 / Graveyard 22-6 windows getDefaultShiftForTime uses. Shared by getShiftMinutesRemaining and getShiftEndTimeLabel so they stay in sync. */
-const SHIFT_END_HOUR: Record<ShiftKey, number> = { day: 14, swing: 22, graveyard: 6 };
+/** "Wednesday, September 16, 2026" — the web End of Shift Report's own Header date picker label (Figma fileKey 0UJDRcrFiXkn16yfc2MUEW, node 174:34936), off the real current day like every other date on this page. */
+export function getFullDateLabel(date: Date = new Date()): string {
+  return date.toLocaleDateString([], { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+}
 
 function shiftEndDate(shiftKey: ShiftKey, date: Date): Date {
+  const { endMinutes } = SHIFT_SCHEDULE[shiftKey];
   const end = new Date(date);
-  end.setHours(SHIFT_END_HOUR[shiftKey], 0, 0, 0);
+  end.setHours(Math.floor(endMinutes / 60), endMinutes % 60, 0, 0);
   // Graveyard crosses midnight (22:00-05:59) — an afternoon/evening "now" means the shift just started tonight and ends tomorrow morning, not today.
   if (shiftKey === "graveyard" && date.getHours() >= 12) end.setDate(end.getDate() + 1);
   return end;
@@ -350,6 +475,23 @@ export function getManagerShiftTimeInfo(
     return { checkedIn, rangeLabel: `${manager.clockIn} – Current`, durationLabel: formatDurationMinutes(elapsed), sectionLabel: "Shift Time" };
   }
   return { checkedIn, rangeLabel: `${manager.clockIn} – ${manager.clockOut}`, durationLabel: manager.totalTime, sectionLabel: "Total Shift Time" };
+}
+
+/** Every shift (Day/Swing/Graveyard) runs 8 hours per SHIFT_OPTIONS' own time ranges — the web End of Shift Report's Side Panel (Figma fileKey 0UJDRcrFiXkn16yfc2MUEW, node 203:40371) reads its live progress ring against this fixed duration. */
+export const SHIFT_DURATION_SECONDS = 8 * 60 * 60;
+
+/** Real seconds elapsed since a manager's own "5:59 AM EDT"-style clockIn, against today's wall clock — the ticking source for both the web report's Side Panel timer and each Shift Managers row's own "Time on Shift" while a shift is in progress. Clamped to 0 so a clock-in later than the current moment (demo data viewed before that hour) never goes negative. */
+export function getElapsedSeconds(clockInLabel: string, date: Date = new Date()): number {
+  const nowSeconds = minutesSinceMidnight(date) * 60 + date.getSeconds();
+  const clockInSeconds = parseClockTimeMinutes(clockInLabel) * 60;
+  return Math.max(0, nowSeconds - clockInSeconds);
+}
+
+/** "02:16:32" — zero-padded HH:MM:SS for a live elapsed duration (getElapsedSeconds), unlike formatDurationMinutes's "7h 39min" (which reads as a finished total, not a running clock). */
+export function formatHMS(totalSeconds: number): string {
+  const clamped = Math.max(0, Math.floor(totalSeconds));
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${pad(Math.floor(clamped / 3600))}:${pad(Math.floor((clamped % 3600) / 60))}:${pad(clamped % 60)}`;
 }
 
 let noteIdCounter = 0;

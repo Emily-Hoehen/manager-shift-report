@@ -65,7 +65,7 @@
 .group[data-variant="segmented"] .option {
   position: relative;
   z-index: 1;
-  border-radius: 8px;
+  border-radius: 0;
   background-color: transparent;
   transition: color 200ms ease;
 }
@@ -86,10 +86,12 @@
 }
 
 .group[data-theme="light"][data-variant="segmented"] .option {
+  background-color: var(--color-neutral-300);
   color: var(--color-text-lt-grey);
 }
 
 .group[data-theme="light"][data-variant="segmented"] .optionActive {
+  background-color: transparent;
   color: var(--color-text-lt-white);
 }
 

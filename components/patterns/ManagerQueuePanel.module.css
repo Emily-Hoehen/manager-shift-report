@@ -1,0 +1,439 @@
+/* ============================================================
+   ManagerQueuePanel — "Manager Queue" report drawer opened from
+   Nav's Clipboard utility icon. Fixed below the 56px-tall Nav bar
+   (see Nav.module.css's .navInner), covering the rest of the
+   viewport with its own scroll — not a dimmed-backdrop modal, a
+   full opaque replacement of whatever page content sits beneath it,
+   matching the reference screenshot's edge-to-edge light surface.
+   ============================================================ */
+
+.panel {
+  position: fixed;
+  top: 56px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 200;
+  overflow-y: auto;
+  padding: 32px 40px 56px;
+  font-family: var(--font-family-ui);
+}
+
+.panel[data-theme="light"] {
+  background-color: var(--surface-lt-page);
+  color: var(--color-text-lt-default);
+}
+
+.panel[data-theme="dark"] {
+  background-color: var(--color-neutral-900);
+  color: var(--color-text-dt-default);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.heading {
+  font-family: var(--type-h2-family);
+  font-weight: var(--type-h2-weight);
+  font-size: 28px;
+  letter-spacing: -0.02em;
+}
+
+.heading[data-theme="light"] {
+  color: var(--color-text-lt-default);
+}
+
+.heading[data-theme="dark"] {
+  color: var(--color-text-dt-default);
+}
+
+.closeButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 100px;
+  background: transparent;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.closeButton[data-theme="light"] {
+  color: var(--color-text-lt-default);
+}
+
+.closeButton[data-theme="dark"] {
+  color: var(--color-text-dt-default);
+}
+
+.closeButton[data-theme="light"]:hover {
+  background-color: var(--wash-neutral-15);
+}
+
+.closeButton[data-theme="dark"]:hover {
+  background-color: var(--color-neutral-800);
+}
+
+/* ---------------- Card grid ---------------- */
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  max-width: 1856px;
+  margin: 0 auto;
+}
+
+.card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 74px;
+  padding: 16px 20px;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: box-shadow 120ms ease;
+}
+
+/* The one real link in this panel (End of Shift Report) — every other
+   card is static placeholder content (see this file's own header
+   comment in ManagerQueuePanel.tsx), so only an <a> needs a hover cue. */
+a.card:hover {
+  box-shadow: 0 0 0 1px var(--color-primary-300) inset;
+}
+
+.card[data-theme="light"] {
+  background-color: var(--surface-lt-card);
+  box-shadow: var(--shadow-lt-card);
+}
+
+.card[data-theme="dark"] {
+  background-color: var(--surface-dt-card);
+  box-shadow: var(--shadow-dt-card);
+}
+
+.cardMain {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.titleLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  font-family: var(--type-h4-family);
+  font-weight: var(--type-h4-weight);
+  font-size: var(--type-h4-size);
+}
+
+.titleLink[data-theme="light"] {
+  color: var(--color-text-lt-blue);
+}
+
+.titleLink[data-theme="dark"] {
+  color: var(--color-text-dt-blue);
+}
+
+.titleArrow {
+  font-size: 12px;
+}
+
+.caption {
+  font-family: var(--type-body-sm-family);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.caption[data-theme="light"] {
+  color: var(--color-text-lt-grey);
+}
+
+.caption[data-theme="dark"] {
+  color: var(--color-text-dt-grey);
+}
+
+.caption strong {
+  font-weight: 700;
+}
+
+.caption[data-theme="light"] strong {
+  color: var(--color-text-lt-default);
+}
+
+.caption[data-theme="dark"] strong {
+  color: var(--color-text-dt-default);
+}
+
+.captionWarning[data-theme="light"] {
+  color: var(--color-text-lt-warning);
+}
+
+.captionWarning[data-theme="dark"] {
+  color: var(--color-text-dt-warning);
+}
+
+.captionDanger[data-theme="light"] {
+  color: var(--color-text-lt-danger);
+}
+
+.captionDanger[data-theme="dark"] {
+  color: var(--color-text-dt-danger);
+}
+
+.captionMuted[data-theme="light"] {
+  color: var(--color-text-lt-grey);
+}
+
+.captionMuted[data-theme="dark"] {
+  color: var(--color-text-dt-grey);
+}
+
+.value {
+  flex-shrink: 0;
+  font-family: var(--type-h2-family);
+  font-weight: var(--type-h2-weight);
+  font-size: 24px;
+  letter-spacing: -0.02em;
+}
+
+.value[data-theme="light"] {
+  color: var(--color-text-lt-blue);
+}
+
+.value[data-theme="dark"] {
+  color: var(--color-text-dt-blue);
+}
+
+/* ---------------- Hours Manager's lead alert icon ---------------- */
+
+.leadIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 100px;
+  font-size: 16px;
+}
+
+.leadIcon[data-tone="danger"][data-theme="light"] {
+  background-color: var(--wash-danger-15);
+  color: var(--color-text-lt-danger);
+}
+
+.leadIcon[data-tone="danger"][data-theme="dark"] {
+  background-color: var(--wash-danger-15);
+  color: var(--color-text-dt-danger);
+}
+
+.leadIcon[data-tone="primary"][data-theme="light"] {
+  background-color: var(--wash-primary-15);
+  color: var(--color-text-lt-blue);
+}
+
+.leadIcon[data-tone="primary"][data-theme="dark"] {
+  background-color: var(--btn-ghost-dt-primary-static);
+  color: var(--color-text-dt-blue);
+}
+
+/* ---------------- Who's On-Site Today's avatar stack ---------------- */
+
+.avatarStack {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+}
+
+.avatarStackItem {
+  width: 32px;
+  height: 32px;
+  border-radius: 100px;
+  object-fit: cover;
+  margin-left: -8px;
+}
+
+.avatarStackItem:first-child {
+  margin-left: 0;
+}
+
+.avatarStackMore {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin-left: -8px;
+  border-radius: 100px;
+  background-color: var(--color-primary-300);
+  color: var(--color-text-dt-default-inverted);
+  font-family: var(--type-h4-family);
+  font-weight: 600;
+  font-size: 11px;
+}
+
+.singleAvatar {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 100px;
+  object-fit: cover;
+}
+
+/* ---------------- Service Validation's progress bar + stacked stat ---------------- */
+
+.progressTrack {
+  width: 100%;
+  height: 6px;
+  border-radius: 100px;
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.progressTrack[data-theme="light"] {
+  background-color: var(--surface-lt-track);
+}
+
+.progressTrack[data-theme="dark"] {
+  background-color: var(--color-neutral-700);
+}
+
+.progressFill {
+  height: 100%;
+  border-radius: 100px;
+  background-color: var(--color-text-lt-warning);
+}
+
+.stackedStat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex-shrink: 0;
+  font-family: var(--type-h4-family);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.statLineIcon {
+  font-size: 11px;
+  margin-right: 2px;
+}
+
+.statLineDanger[data-theme="light"] {
+  color: var(--color-text-lt-danger);
+}
+
+.statLineDanger[data-theme="dark"] {
+  color: var(--color-text-dt-danger);
+}
+
+.statLineWarning[data-theme="light"] {
+  color: var(--color-text-lt-warning);
+}
+
+.statLineWarning[data-theme="dark"] {
+  color: var(--color-text-dt-warning);
+}
+
+.statLineLabel {
+  font-weight: 400;
+}
+
+.statLineLabel[data-theme="light"] {
+  color: var(--color-text-lt-grey);
+}
+
+.statLineLabel[data-theme="dark"] {
+  color: var(--color-text-dt-grey);
+}
+
+/* ---------------- Manager Tools ---------------- */
+
+.subheading {
+  font-family: var(--type-h2-family);
+  font-weight: var(--type-h2-weight);
+  font-size: 22px;
+  letter-spacing: -0.02em;
+  max-width: 1856px;
+  margin: 32px auto 16px;
+}
+
+.subheading[data-theme="light"] {
+  color: var(--color-text-lt-default);
+}
+
+.subheading[data-theme="dark"] {
+  color: var(--color-text-dt-default);
+}
+
+.toolsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  max-width: 1856px;
+  margin: 0 auto;
+}
+
+.toolCard {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 74px;
+  padding: 16px 20px;
+  border: none;
+  border-radius: 8px;
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--type-h4-family);
+  font-weight: var(--type-h4-weight);
+  font-size: var(--type-h4-size);
+}
+
+.toolCard[data-theme="light"] {
+  background-color: var(--surface-lt-card);
+  box-shadow: var(--shadow-lt-card);
+  color: var(--color-text-lt-default);
+}
+
+.toolCard[data-theme="dark"] {
+  background-color: var(--surface-dt-card);
+  box-shadow: var(--shadow-dt-card);
+  color: var(--color-text-dt-default);
+}
+
+.toolIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 100px;
+  background-color: var(--wash-primary-15);
+  font-size: 15px;
+}
+
+.toolIcon[data-theme="light"] {
+  color: var(--color-text-lt-blue);
+}
+
+.toolIcon[data-theme="dark"] {
+  color: var(--color-text-dt-blue);
+}
+
+.toolLabel {
+  font-family: var(--type-h4-family);
+  font-weight: var(--type-h4-weight);
+  font-size: var(--type-h4-size);
+}

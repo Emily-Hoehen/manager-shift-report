@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Nav } from "./Nav";
+import { ManagerQueuePanel } from "./ManagerQueuePanel";
 import { HeroBanner } from "./HeroBanner";
 import { OliviaFab } from "./OliviaFab";
 import { PeopleManagementSection } from "./PeopleManagementSection";
@@ -52,6 +53,7 @@ export type HomeDashboardProps = {
 
 export function HomeDashboard({ currentUser }: HomeDashboardProps) {
   const [theme, setTheme] = useState<ThemeToggleTheme>("light");
+  const [managerQueueOpen, setManagerQueueOpen] = useState(false);
   const today = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
 
   return (
@@ -75,7 +77,7 @@ export function HomeDashboard({ currentUser }: HomeDashboardProps) {
         showOlivia={false}
         utilityItems={[
           { icon: <PlusCircleIcon />, label: "Quick entries" },
-          { icon: <ClipboardIcon />, label: "Clipboard" },
+          { icon: <ClipboardIcon />, label: "Manager Queue", onClick: () => setManagerQueueOpen(true) },
           { icon: <EnvelopeIcon />, label: "Messages" },
           { icon: <BellIcon />, label: "Notifications", hasNotification: true },
         ]}
@@ -101,6 +103,8 @@ export function HomeDashboard({ currentUser }: HomeDashboardProps) {
       </main>
 
       <OliviaFab theme={theme} avatarSrc={oliviaAvatar} />
+
+      <ManagerQueuePanel open={managerQueueOpen} onClose={() => setManagerQueueOpen(false)} theme={theme} />
     </div>
   );
 }

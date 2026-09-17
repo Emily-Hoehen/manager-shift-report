@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Nav } from "./Nav";
+import { ManagerQueuePanel } from "./ManagerQueuePanel";
 import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
 import {
@@ -28,6 +29,7 @@ type RosterKind = "associates" | "managers";
 export function RosterDemo({ associates, managers }: RosterDemoProps) {
   const [roster, setRoster] = useState<RosterKind>("associates");
   const [query, setQuery] = useState("");
+  const [managerQueueOpen, setManagerQueueOpen] = useState(false);
 
   const rows = roster === "associates" ? associates : managers;
 
@@ -62,7 +64,7 @@ export function RosterDemo({ associates, managers }: RosterDemoProps) {
         ]}
         utilityItems={[
           { icon: <ClockIcon />, label: "Time" },
-          { icon: <ClipboardIcon />, label: "Quick entries" },
+          { icon: <ClipboardIcon />, label: "Manager Queue", onClick: () => setManagerQueueOpen(true) },
           { icon: <EnvelopeIcon />, label: "Messages" },
           { icon: <BellIcon />, label: "Notifications", hasNotification: true },
         ]}
@@ -156,6 +158,8 @@ export function RosterDemo({ associates, managers }: RosterDemoProps) {
           )}
         </div>
       </main>
+
+      <ManagerQueuePanel open={managerQueueOpen} onClose={() => setManagerQueueOpen(false)} theme="dark" />
     </div>
   );
 }

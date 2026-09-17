@@ -1,4 +1,8 @@
+"use client";
+
+import { useState } from "react";
 import { Nav, type NavDropdownEntry } from "./Nav";
+import { ManagerQueuePanel } from "./ManagerQueuePanel";
 import { BellIcon, BriefcaseIcon, ClipboardIcon, EnvelopeIcon, MoreIcon, PinIcon, PlusCircleIcon } from "./icons";
 import { siteInfo } from "../../lib/homeDashboardData";
 
@@ -26,6 +30,7 @@ export type SowNavProps = {
  * trying out a Missed Services quick filter in the Your Spaces grid/list.
  */
 export function SowNav({ current }: SowNavProps) {
+  const [managerQueueOpen, setManagerQueueOpen] = useState(false);
   const items: NavDropdownEntry[] = [
     {
       label: "Scope of Work",
@@ -48,30 +53,34 @@ export function SowNav({ current }: SowNavProps) {
   ];
 
   return (
-    <Nav
-      theme="light"
-      orgLabel="SBM"
-      orgIcon={<BriefcaseIcon />}
-      siteLabel={siteInfo.client}
-      siteSubLabel={siteInfo.siteName}
-      siteIcon={<PinIcon />}
-      links={[
-        { label: "Home", href: "/" },
-        { label: "Quality", href: "/quality/scope-of-work", active: true, items },
-        { label: "People", href: "/roster" },
-        { label: "Safety", href: "#" },
-        { label: "Financials", href: "#" },
-      ]}
-      showOlivia={false}
-      utilityItems={[
-        { icon: <PlusCircleIcon />, label: "Quick entries" },
-        { icon: <ClipboardIcon />, label: "Clipboard" },
-        { icon: <EnvelopeIcon />, label: "Messages" },
-        { icon: <BellIcon />, label: "Notifications", hasNotification: true },
-      ]}
-      avatarFallback="EH"
-      avatarAlt="Emily Hoehenrieder"
-      menuIcon={<MoreIcon />}
-    />
+    <>
+      <Nav
+        theme="light"
+        orgLabel="SBM"
+        orgIcon={<BriefcaseIcon />}
+        siteLabel={siteInfo.client}
+        siteSubLabel={siteInfo.siteName}
+        siteIcon={<PinIcon />}
+        links={[
+          { label: "Home", href: "/" },
+          { label: "Quality", href: "/quality/scope-of-work", active: true, items },
+          { label: "People", href: "/roster" },
+          { label: "Safety", href: "#" },
+          { label: "Financials", href: "#" },
+        ]}
+        showOlivia={false}
+        utilityItems={[
+          { icon: <PlusCircleIcon />, label: "Quick entries" },
+          { icon: <ClipboardIcon />, label: "Manager Queue", onClick: () => setManagerQueueOpen(true) },
+          { icon: <EnvelopeIcon />, label: "Messages" },
+          { icon: <BellIcon />, label: "Notifications", hasNotification: true },
+        ]}
+        avatarFallback="EH"
+        avatarAlt="Emily Hoehenrieder"
+        menuIcon={<MoreIcon />}
+      />
+
+      <ManagerQueuePanel open={managerQueueOpen} onClose={() => setManagerQueueOpen(false)} theme="light" />
+    </>
   );
 }
