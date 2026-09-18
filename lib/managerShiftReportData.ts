@@ -54,6 +54,9 @@ export function getShiftLiveStatus(shiftKey: ShiftKey, date: Date = new Date()):
 /** A representative check-in time for the current manager's own clockIn once they pick a shift on the Home screen's check-in sheet — the seed data's "5:59 AM EDT" is Day-shift-specific (see the file header comment), so Swing/Graveyard need their own stand-in start time instead of keeping that stale Day-shift value. */
 export const SHIFT_START_LABEL: Record<ShiftKey, string> = { day: "5:59 AM EDT", swing: "2:00 PM EDT", graveyard: "10:00 PM EDT" };
 
+/** Each shift's own scheduled end time as a display label (SHIFT_SCHEDULE's own endMinutes, spelled out) — the End of Shift Report list's own "due at" copy for a shift that hasn't ended yet today (getShiftLiveStatus's "notStarted"/"inProgress"). */
+export const SHIFT_END_LABEL: Record<ShiftKey, string> = { day: "2:30 PM EDT", swing: "10:00 PM EDT", graveyard: "6:00 AM EDT" };
+
 /** Which shift a manager checking in right now is most likely clocking into — Day 6:00-13:59, Swing 14:00-21:59, Graveyard the rest (22:00-5:59), matching the Map feature's own shift windows (lib/mapPageData.ts's buildDailyReport shiftDefs). Still just a default: the check-in sheet lets the manager pick a different one. */
 export function getDefaultShiftForTime(date: Date = new Date()): ShiftKey {
   const hour = date.getHours();

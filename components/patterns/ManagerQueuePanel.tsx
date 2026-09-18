@@ -22,9 +22,10 @@ export type ManagerQueuePanelProps = {
  * Quality/Scope of Work via SowNav, Roster). Mostly static content — a
  * manager's real queue counts would come from a backend this prototype
  * doesn't have — except End of Shift Report, the one card that's a real
- * link (to /manage-shift/end-of-shift-report), since that flow actually
- * exists in this prototype. MapPage doesn't render <Nav> at all, so this
- * panel isn't reachable there.
+ * link (to /manage-shift/end-of-shift-reports, the month list — from
+ * there a manager picks a day to reach the actual report), since that
+ * flow actually exists in this prototype. MapPage doesn't render <Nav>
+ * at all, so this panel isn't reachable there.
  */
 export function ManagerQueuePanel({ open, onClose, theme = "light" }: ManagerQueuePanelProps) {
   useEffect(() => {
@@ -53,7 +54,7 @@ export function ManagerQueuePanel({ open, onClose, theme = "light" }: ManagerQue
       </div>
 
       <div className={styles.grid}>
-        <Link href="/manage-shift/end-of-shift-report" className={styles.card} data-theme={theme} onClick={onClose}>
+        <Link href="/manage-shift/end-of-shift-reports" className={styles.card} data-theme={theme} onClick={onClose}>
           <span className={styles.leadIcon} data-theme={theme} data-tone="primary">
             <ClipboardCheckIcon />
           </span>

@@ -71,6 +71,10 @@ export function CaretRightIcon({ className }: IconProps) {
   return fa("solid", "caret-right", className);
 }
 
+export function CaretDownIcon({ className }: IconProps) {
+  return fa("solid", "caret-down", className);
+}
+
 export function BookIcon({ className }: IconProps) {
   return fa("solid", "book", className);
 }

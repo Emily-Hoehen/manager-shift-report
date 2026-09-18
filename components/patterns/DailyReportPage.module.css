@@ -1,0 +1,1120 @@
+/* ============================================================
+   DailyReportPage — light-theme, full-page recreation of
+   FullDayReportModalV2's Daily Report content (Figma fileKey
+   0UJDRcrFiXkn16yfc2MUEW, node 104:5253 "Shift Accordion" v2).
+   Same structure and data as the dark modal the Map feature opens
+   this in, ported to sit in 4insite's own light page chrome
+   (Nav + page/main, like EndOfShiftReportPage) instead of an
+   overlay dialog — no backdrop, no close button, the whole page
+   scrolls together. Card/surface tiers follow this app's light
+   convention: page = Core/Neutral/200, a card sitting on the page =
+   Core/Neutral/100, content nested inside that card recedes to
+   Core/Neutral/200 (see .section vs .noteV2). Design tokens only.
+   ============================================================ */
+
+.page {
+  min-height: 100vh;
+  background-color: var(--surface-lt-page);
+  color: var(--color-text-lt-default);
+}
+
+.main {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 32px 0;
+  font-family: var(--font-family-ui);
+}
+
+/* ---------------- Header ---------------- */
+
+.headerBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  margin-bottom: 24px;
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--type-h2-family);
+  font-weight: var(--type-h2-weight);
+  font-size: var(--type-h2-size);
+}
+
+.breadcrumbMuted {
+  color: var(--color-text-lt-grey);
+  text-decoration: none;
+}
+
+.breadcrumbMuted:hover {
+  color: var(--color-text-lt-blue);
+}
+
+.breadcrumbCurrent {
+  color: var(--color-text-lt-default);
+}
+
+/* Figma: Headers/Data Point — Lato Black 48px, 100% leading. Exact token match. */
+.bigDate {
+  font-family: var(--type-data-point-family);
+  font-size: var(--type-data-point-size);
+  font-weight: var(--type-data-point-weight);
+  line-height: var(--type-data-point-leading);
+  color: var(--color-text-lt-default);
+}
+
+/* Top-level card on the page — Core/Neutral/100, same tier as .section and .summaryCard below. */
+.dailySummaryCard {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+  padding: 16px;
+  border-radius: 12px;
+  border-left: 5px solid var(--color-neutral-300);
+  background-color: var(--color-neutral-100);
+  box-shadow: var(--shadow-lt-card);
+}
+
+/* Figma: Body/Body Large — Lato Medium 18px, 24px leading. */
+.dailySummaryText {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-family: var(--type-body-lg-family);
+  font-size: var(--type-body-lg-size);
+  font-weight: var(--type-body-lg-weight);
+  line-height: var(--type-body-lg-leading);
+  color: var(--color-text-lt-default);
+}
+
+.body {
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+}
+
+@media (max-width: 960px) {
+  .main {
+    padding: 20px 20px 40px;
+  }
+
+  .body {
+    flex-direction: column;
+  }
+}
+
+.mainColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  flex: 1 1 640px;
+  min-width: 0;
+}
+
+/* Sticks near the top of the page as it scrolls — no separate max-height/overflow (unlike the modal
+   version): this is a real page, so a sidebar taller than the viewport just stops scrolling with the
+   rest of the main column once it reaches the bottom of it, instead of needing its own inner scroll. */
+.sidebar {
+  flex: 0 0 360px;
+  position: sticky;
+  top: 24px;
+}
+
+@media (max-width: 960px) {
+  .sidebar {
+    position: static;
+    order: -1;
+    flex-basis: auto;
+    width: 100%;
+  }
+}
+
+/* ---------------- Shift card ---------------- */
+
+/* rgba(128, 194, 255, 0.15) — Primary/100 @15%, same --wash-primary-15 token the dark modal uses. */
+.shiftCard {
+  border-radius: 12px;
+  background-color: var(--wash-primary-15);
+  overflow: hidden;
+}
+
+.shiftCardHeader {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+  padding: 20px 24px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  flex-wrap: wrap;
+}
+
+.shiftCardHeaderText {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+/* Figma: Headers/H2 — Lato Black 20px. Shift title uses the same style as the page greeting. */
+.shiftCardTitle {
+  font-family: var(--type-h2-family);
+  font-weight: var(--type-h2-weight);
+  font-size: 24px;
+  line-height: var(--type-h2-leading);
+  color: var(--color-text-lt-default);
+}
+
+.shiftCardTitleCollapsed {
+  color: var(--color-text-lt-blue);
+}
+
+.shiftCardMeta {
+  font-family: var(--type-body-sm-family);
+  font-size: var(--type-body-md-size);
+  color: var(--color-text-lt-grey);
+}
+
+/* Header stats (Areas Serviced / Services Completed / Hours Captured) — a two-line "X% Label" + "A of B" pair per stat, shown the same way whether the card is collapsed or expanded. */
+.shiftCardStatsExpanded {
+  display: flex;
+  align-items: flex-start;
+  gap: 48px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.shiftHeaderStatItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.shiftHeaderStatIcon {
+  flex-shrink: 0;
+  font-size: 20px;
+  color: var(--color-text-lt-blue);
+}
+
+/* Darker/700-tier accents (not the dark modal's pastel /100 icons) — legible against a light page,
+   same convention EndOfShiftReportPage's own Side Panel section icons already use. */
+.shiftHeaderStatIconPurple {
+  color: var(--color-datavis-purple-500);
+}
+
+.shiftHeaderStatIconYellow {
+  color: var(--color-warning-500);
+}
+
+.shiftHeaderStatText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.shiftHeaderStatTitle {
+  font-family: var(--type-h4-family);
+  font-size: var(--type-h4-size);
+  font-weight: var(--type-h4-weight);
+  color: var(--color-text-lt-default);
+  white-space: nowrap;
+}
+
+.shiftHeaderStatSubtitle {
+  font-family: var(--type-body-sm-family);
+  font-size: var(--type-body-md-size);
+  color: var(--color-text-lt-grey);
+  white-space: nowrap;
+}
+
+.shiftCardCaret {
+  flex-shrink: 0;
+  margin-left: 24px;
+  font-size: 14px;
+  color: var(--color-text-lt-blue);
+  transform: rotate(-90deg);
+  transition: transform 160ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.shiftCardCaretOpen {
+  transform: rotate(0deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shiftCardCaret {
+    transition: none;
+  }
+}
+
+/* Grid-rows expand/collapse trick — .shiftCardBody stays mounted at all times so this wrapper can
+   animate its height smoothly between 0 and its natural content height. */
+.shiftCardBodyWrap {
+  display: grid;
+  grid-template-rows: 0fr;
+  min-height: 0;
+  overflow: hidden;
+  transition: grid-template-rows 280ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.shiftCardBodyWrapOpen {
+  grid-template-rows: 1fr;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shiftCardBodyWrap {
+    transition: none;
+  }
+}
+
+.shiftCardBody {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.shiftCardBodyContent {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  padding: 0 24px 32px;
+}
+
+/* ---------------- Section (Managers / Shift Notes / etc.) ---------------- */
+
+/* Top-level card on the page — Core/Neutral/100, same tier as .dailySummaryCard/.summaryCard. */
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  padding: 24px;
+  border-radius: 12px;
+  background-color: var(--color-neutral-100);
+  box-shadow: var(--shadow-lt-card);
+}
+
+.sectionTitle {
+  font-family: var(--type-h2-family);
+  font-size: var(--type-h2-size);
+  font-weight: var(--type-h2-weight);
+  line-height: var(--type-h2-leading);
+  color: var(--color-text-lt-default);
+}
+
+.sectionBody {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+/* ---------------- Managers ---------------- */
+
+.managerList {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.managerRow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.managerAvatar {
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+  border-radius: 100px;
+  object-fit: cover;
+}
+
+.managerInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+.managerName {
+  font-family: var(--type-body-lg-family);
+  font-size: var(--type-body-lg-size);
+  font-weight: 500;
+  color: var(--color-text-lt-default);
+}
+
+.managerPosition {
+  font-family: var(--type-body-md-family);
+  font-size: var(--type-body-md-size);
+  color: var(--color-text-lt-grey);
+}
+
+.managerCheckedOut {
+  font-family: var(--type-body-md-family);
+  font-size: var(--type-body-md-size);
+  color: var(--color-text-lt-success);
+}
+
+.managerDivider {
+  width: 1px;
+  height: 40px;
+  flex-shrink: 0;
+  margin-left: -8px;
+  margin-right: 16px;
+  background-color: var(--surface-lt-hairline);
+}
+
+@media (max-width: 640px) {
+  .managerDivider {
+    display: none;
+  }
+}
+
+.managerTimeStat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1 1 120px;
+  min-width: 90px;
+}
+
+.managerTimeValue {
+  font-family: var(--type-body-md-family);
+  font-size: var(--type-body-lg-size);
+  color: var(--color-text-lt-default);
+  white-space: nowrap;
+}
+
+.managerTimeLabel {
+  font-family: var(--type-body-sm-family);
+  font-size: var(--type-body-md-size);
+  color: var(--color-text-lt-grey);
+  white-space: nowrap;
+}
+
+/* ---------------- Lead stat + ring (Hours Captured / Services Completed) ---------------- */
+
+.leadStatRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.leadStatRing {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.leadStatRingLabel {
+  position: absolute;
+  font-family: var(--type-h4-family);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text-lt-default);
+}
+
+.leadStatCaption {
+  font-family: var(--type-body-md-family);
+  font-size: var(--type-body-md-size);
+  color: var(--color-text-lt-grey);
+}
+
+.areaCoverageRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.areaCoverageStack {
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.leadStatTextStack {
+  display: flex;
+  flex-direction: column;
+  gap: 0px;
+}
+
+.leadStatStackLabel {
+  font-family: var(--type-h3-family);
+  font-size: var(--type-h3-size);
+  font-weight: var(--type-h3-weight);
+  line-height: var(--type-h3-leading);
+  color: var(--color-text-lt-default);
+}
+
+.leadStatStackValue {
+  font-family: var(--type-h2-family);
+  font-size: var(--type-h2-size);
+  font-weight: var(--type-h2-weight);
+  color: var(--color-text-lt-default);
+}
+
+.leadStatValueRow {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.leadStatValueLabel {
+  font-family: var(--type-h4-family);
+  font-size: var(--type-h4-size);
+  font-weight: var(--type-h4-weight);
+  color: var(--color-text-lt-default);
+}
+
+/* ---------------- Headcount / Report-Its stat grids ---------------- */
+
+.headcountGrid {
+  display: flex;
+  flex: 1 1 320px;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 48px;
+  flex-wrap: wrap;
+}
+
+.headcountSubGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.headcountStat,
+.headcountInlineStat {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.headcountLabel {
+  font-family: var(--type-body-md-family);
+  font-size: var(--type-body-md-size);
+  line-height: var(--type-body-md-leading);
+  color: var(--color-text-lt-default);
+  white-space: nowrap;
+}
+
+.headcountValue {
+  font-family: var(--type-h2-family);
+  font-size: var(--type-h2-size);
+  font-weight: var(--type-h2-weight);
+  color: var(--color-text-lt-default);
+}
+
+.headcountInlineStat {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-width: 160px;
+}
+
+.headcountInlineLabel {
+  font-family: var(--type-body-md-family);
+  font-size: var(--type-body-md-size);
+  line-height: var(--type-body-md-leading);
+  color: var(--color-text-lt-grey);
+  white-space: nowrap;
+}
+
+.headcountInlineValue {
+  font-family: var(--type-h3-family);
+  font-size: var(--type-h3-size);
+  font-weight: 600;
+  color: var(--color-text-lt-grey);
+}
+
+/* ---------------- Area Coverage breakdown ---------------- */
+
+.coverageBreakdownRow {
+  display: flex;
+  flex: 1 1 320px;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 20px;
+}
+
+.coverageBreakdownItem {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 110px;
+  flex: 1 1 110px;
+}
+
+.coverageBreakdownLabelRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.coverageBreakdownDot {
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+  border-radius: 4px;
+}
+
+.coverageBreakdownLabel {
+  font-family: var(--type-body-sm-family);
+  font-size: var(--type-body-md-size);
+  color: var(--color-text-lt-default);
+  white-space: nowrap;
+}
+
+.coverageBreakdownValueRow {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.coverageBreakdownValue {
+  font-family: var(--type-h3-family);
+  font-size: var(--type-h3-size);
+  font-weight: var(--type-h3-weight);
+  color: var(--color-text-lt-default);
+  white-space: nowrap;
+}
+
+.coverageBreakdownPercent {
+  font-family: var(--type-body-sm-family);
+  font-size: var(--type-body-md-size);
+  color: var(--color-text-lt-grey);
+}
+
+/* ---------------- Quality ---------------- */
+
+.scoreChipRow {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.scoreCard {
+  display: flex;
+  flex: 0 1 140px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.scoreCardTextGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0px;
+}
+
+.scoreBadge {
+  display: inline-flex;
+  align-self: flex-start;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-family: var(--type-h2-family);
+  font-size: var(--type-h2-size);
+  font-weight: var(--type-h2-weight);
+}
+
+/* Figma: Core/Success/100 badge — a fixed light chip regardless of theme, so its text stays the
+   normal (already-dark) light-theme default color rather than the dark theme's inverted-to-dark swap. */
+.scoreBadge[data-tone="success"] {
+  background-color: var(--color-success-100);
+  color: var(--color-text-lt-default);
+}
+
+.scoreBadge[data-tone="neutral"] {
+  background-color: var(--color-neutral-300);
+  color: var(--color-text-lt-grey);
+}
+
+.scoreCardLabel {
+  font-family: var(--type-h4-family);
+  font-size: var(--type-body-md-size);
+  font-weight: 500;
+  color: var(--color-text-lt-default);
+}
+
+.scoreCardCaption {
+  font-family: var(--type-body-md-family);
+  font-size: var(--type-body-md-size);
+  color: var(--color-text-lt-grey);
+}
+
+.qualitySubsectionRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 40px;
+  flex-wrap: wrap;
+}
+
+.qualitySubsection {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 200px;
+}
+
+.qualitySubsectionButton {
+  border: none;
+  background-color: transparent;
+  text-align: left;
+  padding: 12px;
+  margin: -12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 120ms ease;
+}
+
+.qualitySubsectionButton:hover {
+  background-color: var(--wash-primary-blue-15);
+}
+
+.qualitySubsectionButton:focus-visible {
+  outline: 2px solid var(--color-primary-500);
+  outline-offset: 2px;
+}
+
+.qualitySubsectionTitle {
+  font-family: var(--type-h3-family);
+  font-size: var(--type-h3-size);
+  font-weight: var(--type-h3-weight);
+  line-height: var(--type-h3-leading);
+  color: var(--color-text-lt-default);
+}
+
+.qualityStatRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 48px;
+  flex-wrap: wrap;
+}
+
+.safetyEmptyState {
+  font-family: var(--type-body-md-family);
+  font-size: 14px;
+  color: var(--color-text-lt-default);
+}
+
+.safetyReportStatusBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--type-h4-family);
+  font-size: var(--type-body-lg-size);
+  font-weight: 500;
+  color: var(--color-text-lt-default);
+}
+
+.safetyReportStatusIcon {
+  font-size: 18px;
+  color: var(--color-text-lt-success);
+}
+
+.verticalDivider {
+  width: 1px;
+  align-self: stretch;
+  flex-shrink: 0;
+  background-color: var(--surface-lt-hairline);
+}
+
+.headcountCard {
+  border: none;
+  border-radius: 8px;
+  background-color: transparent;
+  padding: 12px;
+  margin: -12px;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 120ms ease;
+}
+
+.headcountCard:hover {
+  background-color: var(--wash-primary-blue-15);
+}
+
+.headcountCard:focus-visible {
+  outline: 2px solid var(--color-primary-500);
+  outline-offset: 2px;
+}
+
+/* ---------------- Sidebar (Daily Summary) ---------------- */
+
+.summaryCard {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 24px;
+  border-radius: 12px;
+  background-color: var(--color-neutral-100);
+  box-shadow: var(--shadow-lt-modal);
+}
+
+.summaryTitle {
+  font-family: var(--type-h2-family);
+  font-size: var(--type-h2-size);
+  font-weight: var(--type-h2-weight);
+  line-height: var(--type-h2-leading);
+  color: var(--color-text-lt-default);
+}
+
+.hairline {
+  height: 1px;
+  width: 100%;
+  flex-shrink: 0;
+  background-color: var(--surface-lt-hairline);
+}
+
+.sidebarStatBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sidebarStatHeaderRow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.sidebarStatIcon {
+  flex-shrink: 0;
+  width: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  color: var(--color-text-lt-blue);
+}
+
+.sidebarStatIconPurple {
+  color: var(--color-datavis-purple-500);
+}
+
+.sidebarStatIconYellow {
+  color: var(--color-warning-500);
+}
+
+.sidebarStatIconGreen {
+  color: var(--color-success-700);
+}
+
+.sidebarStatIconOrange {
+  color: var(--color-warning-700);
+}
+
+.sidebarStatIconPink {
+  color: var(--color-danger-700);
+}
+
+.sidebarStatBody {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-left: 36px;
+  min-width: 0;
+}
+
+.sidebarQualityRows {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.sidebarStatValueRow {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sidebarStatValue {
+  font-family: var(--type-h2-family);
+  font-size: var(--type-h2-size);
+  font-weight: var(--type-h2-weight);
+  color: var(--color-text-lt-default);
+  white-space: nowrap;
+}
+
+.sidebarStatLabel {
+  font-family: var(--type-h3-family);
+  font-size: var(--type-h3-size);
+  font-weight: var(--type-h3-weight);
+  line-height: var(--type-h3-leading);
+  color: var(--color-text-lt-default);
+}
+
+.sidebarStatCaption {
+  font-family: var(--type-body-md-family);
+  font-size: var(--type-body-md-size);
+  line-height: var(--type-body-md-leading);
+  color: var(--color-text-lt-grey);
+}
+
+.sidebarSubRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-left: 4px;
+  font-family: var(--type-body-md-family);
+  font-size: var(--type-body-md-size);
+}
+
+.sidebarSubRow span:first-child {
+  color: var(--color-text-lt-grey);
+}
+
+.sidebarSubRow span:last-child {
+  color: var(--color-text-lt-default);
+  font-weight: 600;
+}
+
+/* ---------------- Header day-summary card's sign-off row ---------------- */
+
+.signOffPersonRow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.signOffAvatar {
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+  border-radius: 100px;
+  object-fit: cover;
+}
+
+.signOffInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+/* The Sign Off action button, pinned to the right of the avatar/name row by .signOffInfo's own
+   flex:1 — matches the signed-off state's own row height instead of stretching full width. */
+.signOffButtonFit {
+  flex-shrink: 0;
+}
+
+.signOffNameRow {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.signOffName {
+  font-family: var(--type-body-md-family);
+  font-size: var(--type-body-lg-size);
+  font-weight: 500;
+  color: var(--color-text-lt-default);
+}
+
+.signOffPosition {
+  font-family: var(--type-body-md-family);
+  font-size: 1rem;
+  font-weight: 400;
+  color: var(--color-text-lt-grey);
+}
+
+.signOffComplete {
+  font-family: var(--type-body-sm-family);
+  font-size: var(--type-body-lg-size);
+  color: var(--color-text-lt-success);
+}
+
+.signOffNote {
+  font-family: var(--type-body-md-family);
+  font-size: var(--type-body-md-size);
+  line-height: var(--type-body-md-leading);
+  color: var(--color-text-lt-default);
+}
+
+/* ---------------- Sign Off modal ---------------- */
+
+.signOffNoteLabel {
+  display: block;
+  font-family: var(--type-h4-family);
+  font-size: var(--type-h4-size);
+  font-weight: var(--type-h4-weight);
+  color: var(--color-text-lt-default);
+  margin-bottom: 8px;
+}
+
+.signOffNoteInput {
+  width: 100%;
+  min-height: 96px;
+  padding: 12px 16px;
+  border: 1px solid var(--color-neutral-400);
+  border-radius: 4px;
+  background-color: var(--color-neutral-100);
+  color: var(--color-text-lt-default);
+  font-family: var(--type-body-md-family);
+  font-size: 16px;
+  line-height: var(--type-body-md-leading);
+  resize: vertical;
+  margin-bottom: 20px;
+}
+
+.signOffNoteInput::placeholder {
+  color: var(--color-neutral-500);
+}
+
+.confirmActions {
+  display: flex;
+  gap: 12px;
+}
+
+/* ============================================================
+   Notes — nested one level inside a .section card, so they recede
+   to Core/Neutral/200 (the page's own tone) instead of matching
+   the section's brighter Core/Neutral/100, same light "sunken
+   content" convention as the rest of this app.
+   ============================================================ */
+
+.sectionRows {
+  display: flex;
+  align-items: flex-start;
+  gap: 48px;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.sectionRow {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.sectionRowLabel {
+  font-family: var(--type-h4-family);
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 22px;
+  color: var(--color-text-lt-default);
+}
+
+.sectionRowContent {
+  width: 100%;
+  min-width: 0;
+}
+
+.noteV2 {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  border-radius: 12px;
+  border-left: 5px solid var(--color-neutral-300);
+  background-color: var(--surface-lt-card-sunken);
+}
+
+.noteV2Text {
+  font-family: var(--type-body-lg-family);
+  font-size: var(--type-body-lg-size);
+  line-height: var(--type-body-lg-leading);
+  color: var(--color-text-lt-default);
+}
+
+.noteV2TagRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.noteV2Tag {
+  display: inline-flex;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-family: var(--type-h4-family);
+  font-size: var(--type-h4-size);
+  font-weight: var(--type-h4-weight);
+}
+
+.noteV2Tag[data-tag="qr-unreadable"] {
+  background-color: var(--wash-orange-15);
+  color: var(--color-accent-lt-orange);
+}
+
+.noteV2Tag[data-tag="4insite-discrepancy"] {
+  background-color: var(--wash-pinkle-15);
+  color: var(--color-accent-lt-pinkle);
+}
+
+.noteV2Tag[data-tag="staffing"] {
+  background-color: var(--wash-sky-blue-15);
+  color: var(--color-accent-lt-sky-blue);
+}
+
+.noteV2Tag[data-tag="access-restricted"] {
+  background-color: var(--wash-purple-15);
+  color: var(--color-datavis-purple-700);
+}
+
+.noteV2Tag[data-tag="area-closed"] {
+  background-color: var(--wash-red-orange-15);
+  color: var(--color-datavis-red-orange-700);
+}
+
+.noteV2Footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.noteV2Avatar {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 100px;
+  object-fit: cover;
+}
+
+.noteV2Author {
+  font-family: var(--type-h4-family);
+  font-size: var(--type-body-md-size);
+  font-weight: var(--type-h4-weight);
+  color: var(--color-text-lt-default);
+}
+
+.noteV2Time {
+  font-family: var(--type-body-md-family);
+  font-size: var(--type-body-md-size);
+  color: var(--color-text-lt-grey);
+}
+
+.noteV2List {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+}

@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Nav } from "./Nav";
 import { ManagerQueuePanel } from "./ManagerQueuePanel";
 import { ShiftReportSectionCard, type ShiftReportSectionNotesConfig } from "./ShiftReportSectionCard";
@@ -93,13 +95,20 @@ const SECTION_ICON_MAP: Record<SectionKey, { icon: ReactNode; iconColor: string;
  * prototypes visibly-similar but not literally wired together
  * without a real backend.
  */
+const VALID_SHIFT_KEYS: ShiftKey[] = ["day", "swing", "graveyard"];
+
 export function EndOfShiftReportPage() {
+  const searchParams = useSearchParams();
   const [managerQueueOpen, setManagerQueueOpen] = useState(false);
   // One independent ShiftReportState per shift (INITIAL_SHIFT_REPORTS) — the
   // Day/Swing/Graveyard toggle below just switches which slice `shift` reads
   // from; notes/completion made on one shift never touch the others'.
   const [reports, setReports] = useState<Record<ShiftKey, ShiftReportState>>(INITIAL_SHIFT_REPORTS);
-  const [activeShiftKey, setActiveShiftKey] = useState<ShiftKey>("day");
+  // Arriving from a specific shift's own row on the Shift Reports list (?shift=swing) opens straight
+  // to that shift's toggle instead of always defaulting to Day.
+  const requestedShiftKey = searchParams.get("shift");
+  const initialShiftKey = VALID_SHIFT_KEYS.includes(requestedShiftKey as ShiftKey) ? (requestedShiftKey as ShiftKey) : "day";
+  const [activeShiftKey, setActiveShiftKey] = useState<ShiftKey>(initialShiftKey);
   const shift = reports[activeShiftKey];
   // The roster's own lead/Responsible Manager doubles as "the signed-in
   // manager" for whichever shift is active — there's no real auth in this
@@ -280,8 +289,10 @@ export function EndOfShiftReportPage() {
       <main className={styles.main}>
         <div className={styles.header}>
           <div className={styles.breadcrumb}>
-            <span className={styles.breadcrumbMuted}>Manage Shift /</span>
-            <span className={styles.breadcrumbCurrent}>End of Shift Report</span>
+            <Link href="/manage-shift/end-of-shift-reports" className={styles.breadcrumbMuted}>
+              Shift Reports /
+            </Link>
+            <span className={styles.breadcrumbCurrent}>{SHIFT_LABELS[activeShiftKey]} Shift</span>
           </div>
           <div className={styles.datePicker}>
             <button type="button" className={styles.dateCaret} disabled aria-label="Previous day">
@@ -296,7 +307,10 @@ export function EndOfShiftReportPage() {
 
         <div className={styles.rollup}>
           <div className={styles.rollupTitleGroup}>
-            <h1 className={styles.rollupTitle}>{SHIFT_LABELS[shift.shiftKey]} Shift</h1>
+            <div className={styles.rollupTitleStack}>
+              <h1 className={styles.rollupTitle}>{SHIFT_LABELS[shift.shiftKey]} Shift</h1>
+              <span className={styles.rollupDate}>{getFullDateLabel()}</span>
+            </div>
 
             {isLocked && (
               <div className={styles.completedBadge}>

@@ -1,0 +1,584 @@
+/* ============================================================
+   EndOfShiftReportListPage — the "Shift Reports" month list.
+   Figma fileKey 0UJDRcrFiXkn16yfc2MUEW, node 229:5034. Light
+   theme only.
+   ============================================================ */
+
+.page {
+  height: 100vh;
+  overflow-y: auto;
+  background-color: var(--surface-lt-page);
+  color: var(--color-text-lt-default);
+  scrollbar-width: none;
+}
+
+.page::-webkit-scrollbar {
+  display: none;
+}
+
+.main {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 32px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ---------------- Rollup: title + month picker ---------------- */
+
+.rollup {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.rollupTitle {
+  font-family: var(--type-h1-family);
+  font-weight: var(--type-h1-weight);
+  font-size: var(--type-h1-size);
+  color: var(--color-text-lt-default);
+}
+
+.rollupControls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.monthPicker {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 12px;
+  border-radius: 4px;
+  background-color: var(--color-neutral-100);
+}
+
+.monthCaret {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border: none;
+  background: none;
+  color: var(--color-text-lt-blue);
+  cursor: pointer;
+}
+
+.monthCaret:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.monthLabel {
+  font-family: var(--type-h4-family);
+  font-weight: var(--type-h4-weight);
+  font-size: 14px;
+  color: var(--color-text-lt-blue);
+  white-space: nowrap;
+  padding: 0 4px;
+}
+
+/* ---------------- Shared column grid ---------------- */
+
+.tableHeader,
+.dayHeaderRow,
+.childRow {
+  display: grid;
+  grid-template-columns: 380px 400px 1fr 64px;
+  align-items: center;
+}
+
+/* ---------------- Header bar (its own card) ---------------- */
+
+.tableHeader {
+  border-radius: 8px;
+  background-color: var(--color-neutral-100);
+  padding: 12px 0;
+}
+
+.headerCell,
+.sortableHeaderCell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-left: 24px;
+  font-family: var(--type-h4-family);
+  font-weight: var(--type-h4-weight);
+  font-size: var(--type-h4-size);
+  color: var(--color-text-lt-grey);
+}
+
+.sortableHeaderCell {
+  border: none;
+  background: none;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-right: 0;
+  cursor: pointer;
+}
+
+.sortIcon {
+  width: 10px;
+  font-size: 10px;
+  transition: transform 150ms ease;
+}
+
+.sortIconFlipped {
+  transform: rotate(180deg);
+}
+
+.headerArrowSpacer {
+  display: block;
+}
+
+/* ---------------- Day cards ---------------- */
+
+.dayCards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dayCard {
+  border-radius: 8px;
+  background-color: var(--color-neutral-100);
+  box-shadow: var(--shadow-lt-card);
+  overflow: hidden;
+}
+
+.emptyState {
+  padding: 32px 24px;
+  text-align: center;
+  font-family: var(--type-body-md-family);
+  font-size: var(--type-body-md-size);
+  color: var(--color-text-lt-grey);
+}
+
+.dayHeaderRow {
+  width: 100%;
+  padding: 20px 0;
+  border: none;
+  background: none;
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  transition: background-color 120ms ease;
+}
+
+.dayHeaderRow:hover {
+  background-color: var(--wash-primary-blue-15);
+}
+
+.dayHeaderRow:disabled {
+  cursor: default;
+}
+
+.dayHeaderRow:disabled:hover {
+  background-color: transparent;
+}
+
+.childRow {
+  min-height: 79px;
+  padding: 16px 0;
+  text-decoration: none;
+  color: inherit;
+  border-top: 1px solid var(--color-neutral-300);
+  transition: background-color 120ms ease;
+}
+
+.childRow:hover {
+  background-color: var(--wash-primary-blue-15);
+}
+
+/* ---------------- Day cell (caret + date) ---------------- */
+
+.dayCell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-left: 24px;
+  min-width: 0;
+}
+
+.expandCaret {
+  flex-shrink: 0;
+  width: 12px;
+  font-size: 12px;
+  color: var(--color-text-lt-grey);
+  transition: transform 150ms ease;
+}
+
+.expandCaretOpen {
+  transform: rotate(90deg);
+}
+
+.dayCellText {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.dayDate {
+  font-family: var(--type-h3-family);
+  font-weight: var(--type-h3-weight);
+  font-size: 16px;
+  color: var(--color-text-lt-default);
+}
+
+.dayInProgress {
+  font-family: var(--type-h4-family);
+  font-weight: var(--type-h4-weight);
+  font-size: var(--type-h4-size);
+  color: var(--color-text-lt-blue);
+}
+
+.childDayCell {
+  padding-left: 64px;
+  font-family: var(--type-body-lg-family);
+  font-size: var(--type-body-lg-size);
+  color: var(--color-text-lt-default);
+}
+
+/* ---------------- Report Status cell ---------------- */
+
+.reportStatusCell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-left: 24px;
+  padding-right: 24px;
+  min-width: 0;
+}
+
+.reportStatusCount {
+  font-family: var(--type-body-md-family);
+  font-weight: var(--type-body-md-weight);
+  font-size: var(--type-body-md-size);
+  color: var(--color-text-lt-default);
+}
+
+.reportStatusText {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.reportStatusCaption {
+  font-family: var(--type-body-md-family);
+  font-size: var(--type-body-md-size);
+  color: var(--color-text-lt-grey);
+}
+
+.reportStatusCaption[data-tone="danger"] {
+  color: var(--color-text-lt-danger);
+}
+
+.overduePill {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 4px;
+  background-color: var(--wash-danger-15);
+  color: var(--color-text-lt-danger);
+  font-family: var(--type-h4-family);
+  font-weight: var(--type-h4-weight);
+  font-size: var(--type-h4-size);
+  white-space: nowrap;
+}
+
+.cellMutedDash {
+  font-family: var(--type-body-lg-family);
+  font-size: var(--type-body-lg-size);
+  color: var(--color-neutral-500);
+}
+
+/* ---------------- Signed Off By cell ---------------- */
+
+.signedOffByCell {
+  display: flex;
+  align-items: center;
+  padding-left: 24px;
+  padding-right: 24px;
+  min-width: 0;
+}
+
+.personChip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.personAvatar {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  background-color: var(--color-neutral-300);
+}
+
+.personText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.personName {
+  font-family: var(--type-h4-family);
+  font-weight: var(--type-h4-weight);
+  font-size: var(--type-h4-size);
+  color: var(--color-text-lt-default);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.personRole {
+  font-family: var(--type-body-sm-family);
+  font-size: var(--type-body-sm-size);
+  color: var(--color-text-lt-grey);
+}
+
+/* ---------------- Sign-Off Status cell ---------------- */
+
+.signOffStatusCell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-left: 24px;
+  padding-right: 24px;
+  min-width: 0;
+}
+
+.signOffTitle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--type-h4-family);
+  font-weight: var(--type-h4-weight);
+  font-size: var(--type-h4-size);
+  color: var(--color-text-lt-default);
+}
+
+.signOffTitle[data-tone="neutral"] {
+  color: var(--color-text-lt-grey);
+}
+
+.signOffTitleIcon {
+  flex-shrink: 0;
+  font-size: 16px;
+  color: var(--color-text-lt-success);
+}
+
+.signOffCaption {
+  font-family: var(--type-body-md-family);
+  font-size: var(--type-body-md-size);
+  color: var(--color-text-lt-grey);
+}
+
+.signOffCaption[data-tone="danger"] {
+  color: var(--color-text-lt-danger);
+}
+
+.signOffCaption[data-tone="warning"] {
+  color: var(--color-text-lt-warning);
+}
+
+/* ---------------- Trailing arrow ---------------- */
+
+.rowArrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  color: var(--color-text-lt-blue);
+}
+
+/* ---------------- v2 flat grid (Figma node 229:1569) ---------------- */
+
+.tableHeaderV2,
+.dayRowV2 {
+  display: grid;
+  grid-template-columns: 320px 250px 250px 300px 1fr 64px;
+  align-items: center;
+}
+
+.dayRowV2 {
+  min-height: 80px;
+  border-radius: 8px;
+  background-color: var(--color-neutral-100);
+  box-shadow: var(--shadow-lt-card);
+  text-decoration: none;
+  color: inherit;
+  transition: background-color 120ms ease;
+}
+
+.dayRowV2:hover {
+  background-color: var(--wash-primary-blue-15);
+}
+
+.dayRowV2Disabled {
+  cursor: default;
+}
+
+.dayRowV2Disabled:hover {
+  background-color: var(--color-neutral-100);
+}
+
+.dayCellV2 {
+  display: flex;
+  align-items: center;
+  padding-left: 24px;
+  min-width: 0;
+}
+
+.completedByCellV2 {
+  display: flex;
+  align-items: center;
+  padding-left: 24px;
+  padding-right: 24px;
+  min-width: 0;
+}
+
+.completedByTextV2 {
+  font-family: var(--type-body-md-family);
+  font-size: var(--type-body-md-size);
+  color: var(--color-text-lt-default);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.statusTagCellV2 {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding-left: 24px;
+  padding-right: 24px;
+  min-width: 0;
+}
+
+.statusTagV2 {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-family: var(--type-h4-family);
+  font-weight: var(--type-h4-weight);
+  font-size: var(--type-h4-size);
+  white-space: nowrap;
+}
+
+.statusTagV2[data-tone="warning"] {
+  background-color: var(--wash-warning-15);
+  color: var(--color-text-lt-warning);
+}
+
+.statusTagV2[data-tone="danger"] {
+  background-color: var(--wash-danger-15);
+  color: var(--color-text-lt-danger);
+}
+
+.statusTagCaptionV2 {
+  font-family: var(--type-body-sm-family);
+  font-size: var(--type-body-sm-size);
+  color: var(--color-text-lt-grey);
+}
+
+/* ---------------- Responsive ---------------- */
+
+@media (max-width: 1100px) {
+  .tableHeader,
+  .dayHeaderRow,
+  .childRow {
+    grid-template-columns: 240px 1fr 64px;
+  }
+
+  .tableHeader > *:nth-child(3),
+  .dayHeaderRow > *:nth-child(3),
+  .childRow > *:nth-child(3) {
+    display: none;
+  }
+
+  .tableHeaderV2,
+  .dayRowV2 {
+    grid-template-columns: 240px 1fr 64px;
+  }
+
+  .tableHeaderV2 > *:nth-child(2),
+  .tableHeaderV2 > *:nth-child(3),
+  .tableHeaderV2 > *:nth-child(4),
+  .dayRowV2 > *:nth-child(2),
+  .dayRowV2 > *:nth-child(3),
+  .dayRowV2 > *:nth-child(4) {
+    display: none;
+  }
+}
+
+@media (max-width: 700px) {
+  .rollup {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .rollupControls {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .tableHeader,
+  .tableHeaderV2 {
+    display: none;
+  }
+
+  .dayHeaderRow,
+  .childRow {
+    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 16px 24px;
+  }
+
+  .dayRowV2 {
+    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 16px 24px;
+    min-height: 0;
+  }
+
+  .dayCell,
+  .childDayCell,
+  .dayCellV2,
+  .reportStatusCell,
+  .signOffStatusCell,
+  .signedOffByCell,
+  .completedByCellV2,
+  .statusTagCellV2 {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .rowArrow {
+    display: none;
+  }
+}
+

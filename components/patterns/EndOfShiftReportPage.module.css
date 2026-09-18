@@ -47,6 +47,11 @@
 
 .breadcrumbMuted {
   color: var(--color-text-lt-grey);
+  text-decoration: none;
+}
+
+.breadcrumbMuted:hover {
+  color: var(--color-text-lt-blue);
 }
 
 .breadcrumbCurrent {
@@ -104,11 +109,24 @@
   flex-wrap: wrap;
 }
 
+.rollupTitleStack {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
 .rollupTitle {
   font-family: var(--type-h1-family);
   font-weight: var(--type-h1-weight);
   font-size: var(--type-h1-size);
   color: var(--color-text-lt-default);
+}
+
+.rollupDate {
+  font-family: var(--type-h4-family);
+  font-weight: var(--type-h4-weight);
+  font-size: var(--type-h4-size);
+  color: var(--color-text-lt-grey);
 }
 
 .completedBadge {
