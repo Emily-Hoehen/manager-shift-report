@@ -30,6 +30,8 @@ export type ShiftInProgressPanelProps = {
   sections: ShiftInProgressPanelSection[];
   isLocked: boolean;
   canComplete: boolean;
+  /** Hides the Complete Shift Report button and its hint entirely — for a viewer who could never take this action (Site Director, Other User), not just one who can't take it yet. Defaults to true. */
+  showCompleteAction?: boolean;
   onCompleteClick: () => void;
   /** Jumps the left column to that section's card, expanding it first if it's collapsed — key is "managers" for the Shift Managers row, or a section's own key otherwise. */
   onSelectSection: (key: string) => void;
@@ -60,6 +62,7 @@ export function ShiftInProgressPanel({
   sections,
   isLocked,
   canComplete,
+  showCompleteAction = true,
   onCompleteClick,
   onSelectSection,
 }: ShiftInProgressPanelProps) {
@@ -132,10 +135,14 @@ export function ShiftInProgressPanel({
       <div className={styles.divider} />
 
       {/* Always reachable, even once already completed — a manager can keep adding notes and re-complete the report from here. */}
-      {!canComplete && <p className={styles.hint}>Shift report can only be completed once a shift has ended and all sections have at least one note added</p>}
-      <Button variant="primary" theme="light" disabled={!canComplete} onClick={onCompleteClick} className={styles.completeButton}>
-        Complete Shift Report
-      </Button>
+      {showCompleteAction && (
+        <>
+          {!canComplete && <p className={styles.hint}>Shift report can only be completed once a shift has ended and all sections have at least one note added</p>}
+          <Button variant="primary" theme="light" disabled={!canComplete} onClick={onCompleteClick} className={styles.completeButton}>
+            Complete Shift Report
+          </Button>
+        </>
+      )}
     </div>
   );
 }

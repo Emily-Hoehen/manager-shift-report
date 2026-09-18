@@ -5,7 +5,6 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { ChartLineIcon, ChevronRightIcon, ClipboardCheckIcon, ClipboardListIcon, TriangleExclamationIcon, XmarkIcon } from "./icons";
 import { clockedInAvatars } from "../../lib/homeDashboardData";
-import { INITIAL_SHIFT_REPORT, getShiftReportProgressSubtext } from "../../lib/managerShiftReportData";
 import styles from "./ManagerQueuePanel.module.css";
 
 export type ManagerQueuePanelTheme = "light" | "dark";
@@ -59,10 +58,7 @@ export function ManagerQueuePanel({ open, onClose, theme = "light" }: ManagerQue
             <ClipboardCheckIcon />
           </span>
           <div className={styles.cardMain}>
-            <TitleLink theme={theme}>End of Shift Report</TitleLink>
-            <p className={styles.caption} data-theme={theme}>
-              {getShiftReportProgressSubtext(INITIAL_SHIFT_REPORT)}
-            </p>
+            <TitleLink theme={theme}>Shift Reports</TitleLink>
           </div>
         </Link>
 

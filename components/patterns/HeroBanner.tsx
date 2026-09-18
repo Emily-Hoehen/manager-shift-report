@@ -74,7 +74,7 @@ export function HeroBanner({
             <img src={logo} alt="" className={styles.logo} />
           </div>
           <div className={styles.label}>
-            <p className={styles.siteName}>{siteName}</p>
+            <h4 className={styles.siteName}>{siteName}</h4>
             <p className={styles.client}>{client}</p>
           </div>
         </div>

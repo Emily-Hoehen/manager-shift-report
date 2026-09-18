@@ -44,6 +44,7 @@ import {
   getSectionNoteCount,
   getShiftLiveStatus,
   nextNoteId,
+  parseViewerRole,
   type SectionKey,
   type ShiftKey,
   type ShiftManager,
@@ -109,6 +110,10 @@ export function EndOfShiftReportPage() {
   const requestedShiftKey = searchParams.get("shift");
   const initialShiftKey = VALID_SHIFT_KEYS.includes(requestedShiftKey as ShiftKey) ? (requestedShiftKey as ShiftKey) : "day";
   const [activeShiftKey, setActiveShiftKey] = useState<ShiftKey>(initialShiftKey);
+  // Who's looking at this page (see ViewerRole) — only a Manager on Shift can add notes or complete a
+  // report, and only for whichever shift is actually theirs right now (canEditShift below); Site
+  // Director and Other User both get the exact same read-only rendering here.
+  const viewerRole = parseViewerRole(searchParams.get("as"));
   const shift = reports[activeShiftKey];
   // The roster's own lead/Responsible Manager doubles as "the signed-in
   // manager" for whichever shift is active — there's no real auth in this
@@ -226,10 +231,14 @@ export function EndOfShiftReportPage() {
   const liveStatus = now ? getShiftLiveStatus(activeShiftKey, now) : "inProgress";
   const shiftTimeRange = SHIFT_OPTIONS.find((option) => option.key === activeShiftKey)?.timeRange ?? "";
   const readyToComplete = allSectionsHaveNotes(shift);
+  // Only a Manager on Shift can touch this report at all, and only once this specific shift has
+  // actually started — a future shift they're not checked into yet stays read-only, same as it would
+  // for the Site Director or Other User (viewerRole !== "manager" is read-only unconditionally).
+  const canEditShift = viewerRole === "manager" && isCurrentResponsible && liveStatus !== "notStarted";
   // Not gated on `isLocked` — Day loads pre-completed for display (title, no
   // counter), but a manager can still add notes and complete the report
   // again from here, same as an in-progress shift.
-  const canComplete = readyToComplete && hasEnded && isCurrentResponsible;
+  const canComplete = readyToComplete && hasEnded && canEditShift;
 
   const quality = shift.sections.quality;
   const qualityAverageScore = ((quality.aiVerification.score + quality.internalAudit.score + quality.customerAudit.score) / 3).toFixed(2);
@@ -243,10 +252,11 @@ export function EndOfShiftReportPage() {
     return {
       items: section.notes,
       tagVocabulary: section.tagVocabulary,
-      // Never actually locked — a completed shift still shows its own
-      // "Completed" state (title, badge), but a manager can keep adding and
-      // managing notes and re-complete the report from here regardless.
-      isLocked: false,
+      // Locked (no composer, no edit/delete menu) for anyone who isn't the Manager on Shift for this
+      // specific, already-started shift (canEditShift) — a completed shift still shows its own
+      // "Completed" state (title, badge) either way, a Manager on Shift can just keep adding notes and
+      // re-complete the report from here too.
+      isLocked: !canEditShift,
       currentManagerId,
       getAuthor: (managerId) => {
         const manager = getManager(shift, managerId);
@@ -289,7 +299,10 @@ export function EndOfShiftReportPage() {
       <main className={styles.main}>
         <div className={styles.header}>
           <div className={styles.breadcrumb}>
-            <Link href="/manage-shift/end-of-shift-reports" className={styles.breadcrumbMuted}>
+            <Link
+              href={viewerRole === "director" ? "/manage-shift/end-of-shift-reports" : `/manage-shift/end-of-shift-reports?as=${viewerRole}`}
+              className={styles.breadcrumbMuted}
+            >
               Shift Reports /
             </Link>
             <span className={styles.breadcrumbCurrent}>{SHIFT_LABELS[activeShiftKey]} Shift</span>
@@ -440,6 +453,7 @@ export function EndOfShiftReportPage() {
             }))}
             isLocked={isLocked}
             canComplete={canComplete}
+            showCompleteAction={viewerRole === "manager"}
             onCompleteClick={() => setConfirmOpen(true)}
             onSelectSection={handleSelectSection}
           />

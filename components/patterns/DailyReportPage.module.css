@@ -34,6 +34,13 @@
   margin-bottom: 24px;
 }
 
+.headerTopRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
 .breadcrumb {
   display: flex;
   align-items: center;
@@ -41,6 +48,39 @@
   font-family: var(--type-h2-family);
   font-weight: var(--type-h2-weight);
   font-size: var(--type-h2-size);
+}
+
+/* Figma fileKey 0UJDRcrFiXkn16yfc2MUEW, node 265:34511's "Date Picker" — this prototype has no
+   per-day report data beyond the one ANCHOR_DATE sample (see the file header comment), so stepping
+   it only moves this label, not the big date heading or anything below it. */
+.datePicker {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 12px;
+  border-radius: 4px;
+  background-color: var(--color-neutral-100);
+}
+
+.dateCaret {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border: none;
+  background: none;
+  color: var(--color-text-lt-blue);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.dateLabel {
+  font-family: var(--type-h4-family);
+  font-weight: var(--type-h4-weight);
+  font-size: 14px;
+  color: var(--color-text-lt-blue);
+  white-space: nowrap;
 }
 
 .breadcrumbMuted {
@@ -90,6 +130,15 @@
   color: var(--color-text-lt-default);
 }
 
+/* "Reports Pending" — the unsigned, still-in-progress-today state of .dailySummaryCard (Figma fileKey
+   0UJDRcrFiXkn16yfc2MUEW, node 247:21796). Bolder than the body copy under it, same title/caption
+   pairing as .signOffName vs .signOffPosition. */
+.reportsPendingTitle {
+  font-family: var(--type-h3-family, var(--type-body-lg-family));
+  font-weight: 700;
+  color: var(--color-text-lt-default);
+}
+
 .body {
   display: flex;
   align-items: flex-start;
@@ -132,13 +181,38 @@
   }
 }
 
-/* ---------------- Shift card ---------------- */
+/* ---------------- Shift row ---------------- */
 
-/* rgba(128, 194, 255, 0.15) — Primary/100 @15%, same --wash-primary-15 token the dark modal uses. */
+/* One row per shift, now a plain link to that shift's own full page (see ShiftRow) instead of an
+   inline accordion — data-tone picks the background per ShiftRowTone, same wash tokens the Shift
+   Reports list uses for its own row tones. */
 .shiftCard {
+  display: block;
   border-radius: 12px;
-  background-color: var(--wash-primary-15);
   overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+  transition: filter 120ms ease;
+}
+
+.shiftCard:hover {
+  filter: brightness(0.98);
+}
+
+.shiftCard[data-tone="completed"] {
+  background-color: var(--wash-primary-15);
+}
+
+.shiftCard[data-tone="inProgress"] {
+  background-color: var(--wash-warning-15);
+}
+
+.shiftCard[data-tone="notStarted"] {
+  background-color: var(--color-neutral-200);
+}
+
+.shiftCard[data-tone="overdue"] {
+  background-color: var(--wash-danger-15);
 }
 
 .shiftCardHeader {
@@ -147,11 +221,6 @@
   gap: 20px;
   width: 100%;
   padding: 20px 24px;
-  border: none;
-  background: transparent;
-  color: inherit;
-  text-align: left;
-  cursor: pointer;
   flex-wrap: wrap;
 }
 
@@ -163,17 +232,30 @@
   min-width: 0;
 }
 
-/* Figma: Headers/H2 — Lato Black 20px. Shift title uses the same style as the page greeting. */
+/* Figma: Headers/H2 — Lato Black 20px. Shift title uses the same style as the page greeting; color
+   follows tone the same way the Shift Reports list's own row titles do (see EndOfShiftReportListPage
+   .signOffTitle). */
 .shiftCardTitle {
   font-family: var(--type-h2-family);
   font-weight: var(--type-h2-weight);
   font-size: 24px;
   line-height: var(--type-h2-leading);
-  color: var(--color-text-lt-default);
 }
 
-.shiftCardTitleCollapsed {
+.shiftCardTitle[data-tone="completed"] {
   color: var(--color-text-lt-blue);
+}
+
+.shiftCardTitle[data-tone="inProgress"] {
+  color: var(--color-text-lt-warning);
+}
+
+.shiftCardTitle[data-tone="notStarted"] {
+  color: var(--color-text-lt-grey);
+}
+
+.shiftCardTitle[data-tone="overdue"] {
+  color: var(--color-text-lt-danger);
 }
 
 .shiftCardMeta {
@@ -234,23 +316,11 @@
   white-space: nowrap;
 }
 
-.shiftCardCaret {
+.shiftCardArrow {
   flex-shrink: 0;
   margin-left: 24px;
   font-size: 14px;
   color: var(--color-text-lt-blue);
-  transform: rotate(-90deg);
-  transition: transform 160ms cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.shiftCardCaretOpen {
-  transform: rotate(0deg);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .shiftCardCaret {
-    transition: none;
-  }
 }
 
 /* Grid-rows expand/collapse trick — .shiftCardBody stays mounted at all times so this wrapper can

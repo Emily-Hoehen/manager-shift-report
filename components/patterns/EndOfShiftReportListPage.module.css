@@ -25,6 +25,20 @@
   gap: 24px;
 }
 
+/* ---------------- View-as toggle ---------------- */
+
+.viewAsRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.viewAsLabel {
+  font-family: var(--type-body-sm-family);
+  font-size: var(--type-body-md-size);
+  color: var(--color-text-lt-grey);
+}
+
 /* ---------------- Rollup: title + month picker ---------------- */
 
 .rollup {

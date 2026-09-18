@@ -29,6 +29,27 @@ export const SHIFT_OPTIONS: { key: ShiftKey; label: string; timeRange: string }[
 
 export const SHIFT_LABELS: Record<ShiftKey, string> = { day: "Day", swing: "Swing", graveyard: "Graveyard" };
 
+/**
+ * Who's looking at a shift/daily report right now — there's no real auth in this prototype, so the
+ * Shift Reports list's own persona toggle (EndOfShiftReportListPage) just sets this directly and
+ * passes it along as a `?as=` query param to the Daily Report and End of Shift Report pages, which
+ * gate their own sign-off/note-editing UI on it. "director" (the default, e.g. a link with no `as`
+ * param at all) can sign off a completed day from the Daily Report; "manager" can add notes and
+ * complete a shift report, but only for whichever shift is actually theirs right now
+ * (getDefaultShiftForTime); "other" is read-only everywhere.
+ */
+export type ViewerRole = "director" | "manager" | "other";
+
+export const VIEWER_ROLE_LABELS: Record<ViewerRole, string> = {
+  director: "Site Director",
+  manager: "Manager on Shift",
+  other: "Other User",
+};
+
+export function parseViewerRole(value: string | null): ViewerRole {
+  return value === "manager" || value === "other" ? value : "director";
+}
+
 /** Each shift's real scheduled window in minutes-since-midnight — Day 6:00 AM-2:30 PM, Swing 2:00 PM-10:00 PM, Graveyard 10:00 PM-6:00 AM (crosses midnight). Device local time stands in for EDT throughout this file (see SHIFT_START_LABEL), so this is plain wall-clock math, not real timezone-aware instants. Shared by getShiftLiveStatus and shiftEndDate so the "Not Started"/"In Progress" display and the "time remaining" math never disagree about when a shift starts or ends. */
 export const SHIFT_SCHEDULE: Record<ShiftKey, { startMinutes: number; endMinutes: number }> = {
   day: { startMinutes: 6 * 60, endMinutes: 14 * 60 + 30 },

@@ -1,15 +1,17 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Nav } from "./Nav";
 import { ManagerQueuePanel } from "./ManagerQueuePanel";
 import {
+  ArrowRightIcon,
   BellIcon,
   BriefcaseIcon,
   BroomWideIcon,
-  ChevronDownIcon,
+  CaretLeftIcon,
+  CaretRightIcon,
   CircleCheckIcon,
   ClipboardCheckIcon,
   ClipboardIcon,
@@ -22,22 +24,43 @@ import {
   UserHardHatIcon,
   VectorSquareIcon,
 } from "./icons";
-import { DonutRing, SegmentedDonutRing } from "../ui/Charts";
 import { Button } from "../ui/Button";
 import { Modal } from "../ui/Modal";
-import { AssociateAttendanceModal } from "./AssociateAttendanceModal";
-import { ReportItsModal } from "./ReportItsModal";
 import { formatMinutesToHoursLabel, parseHoursLabelToMinutes } from "./FullShiftReportModal";
 import { buildDailyReport, type QualityScore } from "../../lib/mapPageData";
-import { buildShiftReport, type ManagerNote, type ShiftReport } from "../../lib/mapShiftReportData";
-import { computeDailyAreaCoverageBreakdown, type AreaCoverageBreakdown } from "../../lib/mapAreaServiceData";
-import { formatSignOffNowLabel } from "../../lib/shiftReportListData";
+import { buildShiftReport, type ShiftReport } from "../../lib/mapShiftReportData";
+import { computeDailyAreaCoverageBreakdown } from "../../lib/mapAreaServiceData";
+import { formatSignOffNowLabel, SHIFT_ORDER } from "../../lib/shiftReportListData";
+import {
+  INITIAL_SHIFT_REPORTS,
+  SHIFT_LABELS,
+  getShiftLiveStatus,
+  parseViewerRole,
+  type ShiftKey,
+} from "../../lib/managerShiftReportData";
 import type { ContractBuilding } from "../../lib/sowContract";
 import { ANCHOR_DATE } from "../../lib/sowData";
 import { siteInfo } from "../../lib/homeDashboardData";
 import styles from "./DailyReportPage.module.css";
 
 const dateFormatter = new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric" });
+const pickerDateFormatter = new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+
+function addDays(date: Date, days: number): Date {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
+type ShiftRowTone = "completed" | "inProgress" | "notStarted" | "overdue";
+
+/** Today's own per-shift tone (see buildTodayRow in shiftReportListData, which this mirrors) — only meaningful while isToday is true; a past/illustrative day's shifts are always "completed". */
+function getTodayShiftTone(shiftKey: ShiftKey, now: Date | null): ShiftRowTone {
+  if (!now) return "notStarted";
+  const liveStatus = getShiftLiveStatus(shiftKey, now);
+  if (liveStatus !== "ended") return liveStatus === "inProgress" ? "inProgress" : "notStarted";
+  return INITIAL_SHIFT_REPORTS[shiftKey].completedBy ? "completed" : "overdue";
+}
 
 /** Same three Quality categories FullDayReportModalV2 shows in the Map — kept identical here so the two surfaces never disagree. */
 const QUALITY_DISPLAY_LABELS = ["AI Verification", "Internal Audit", "Customer Audit"] as const;
@@ -69,10 +92,36 @@ export type DailyReportPageProps = {
 export function DailyReportPage({ contractBuildings }: DailyReportPageProps) {
   const searchParams = useSearchParams();
   const [managerQueueOpen, setManagerQueueOpen] = useState(false);
-  const [expandedShiftKeys, setExpandedShiftKeys] = useState<Set<ShiftReport["shiftKey"]>>(() => new Set());
+
+  // Who's looking at this page (see ViewerRole) — only the Site Director can sign off a day here; a
+  // Manager on Shift or Other User both just get a read-only view of the same content. Set by the
+  // Shift Reports list's own persona toggle, carried over as a `?as=` param.
+  const viewerRole = parseViewerRole(searchParams.get("as"));
+
+  // Set only by the Shift Reports list's own today row (see dailyReportHref) — every other entry
+  // point (a past, illustrative day) keeps this page's original always-the-same-sample-day behavior.
+  // While true, the three shift rows below read live status (getShiftLiveStatus/INITIAL_SHIFT_REPORTS)
+  // instead of always showing "completed", same live source the list's own today row already reads.
+  const isToday = searchParams.get("today") === "1";
+
+  // Starts null so the server-rendered markup and the client's first render agree exactly (today's
+  // live shift status can't be known during SSR) — filled in immediately after mount, client-side only.
+  const [now, setNow] = useState<Date | null>(null);
+  useEffect(() => {
+    if (!isToday) return;
+    setNow(new Date());
+    const interval = setInterval(() => setNow(new Date()), 30000);
+    return () => clearInterval(interval);
+  }, [isToday]);
+
+  // The header's own date picker (Figma fileKey 0UJDRcrFiXkn16yfc2MUEW, node 265:34511) — this
+  // prototype has no per-day report data beyond the one ANCHOR_DATE sample (see the file header
+  // comment), so stepping the picker only moves the big date heading itself, not the content below it.
+  const [viewDate, setViewDate] = useState(ANCHOR_DATE);
 
   const dailyReport = buildDailyReport(0, contractBuildings);
   const allShiftReports = dailyReport.shifts.map((shift) => buildShiftReport(shift, 0, contractBuildings));
+  const shiftReportByKey = Object.fromEntries(allShiftReports.map((report) => [report.shiftKey, report])) as Record<ShiftKey, ShiftReport>;
   const dailyAreaCoverage = computeDailyAreaCoverageBreakdown(contractBuildings, 0);
 
   // A day the Shift Reports list already marks "Signed Off" (?signedOff=1&at=...) opens here already
@@ -123,6 +172,15 @@ export function DailyReportPage({ contractBuildings }: DailyReportPageProps) {
   const reportItsAccepted = allShiftReports.reduce((sum, r) => sum + r.reportItsAccepted, 0);
   const reportItsAcceptanceRate = reportItsSubmitted > 0 ? Math.round((reportItsAccepted / reportItsSubmitted) * 100) : 0;
 
+  const shiftTones: Record<ShiftKey, ShiftRowTone> = Object.fromEntries(
+    SHIFT_ORDER.map((key) => [key, isToday ? getTodayShiftTone(key, now) : "completed"])
+  ) as Record<ShiftKey, ShiftRowTone>;
+  const dayInProgress = isToday && SHIFT_ORDER.some((key) => shiftTones[key] === "inProgress" || shiftTones[key] === "notStarted");
+  const signOffDueLabel = pickerDateFormatter.format(addDays(now ?? ANCHOR_DATE, 1));
+
+  const asParam = viewerRole === "director" ? "" : `&as=${viewerRole}`;
+  const listHref = viewerRole === "director" ? "/manage-shift/end-of-shift-reports" : `/manage-shift/end-of-shift-reports?as=${viewerRole}`;
+
   return (
     <div className={styles.page}>
       <Nav
@@ -153,58 +211,77 @@ export function DailyReportPage({ contractBuildings }: DailyReportPageProps) {
 
       <main className={styles.main}>
         <header className={styles.headerBlock}>
-          <div className={styles.breadcrumb}>
-            <Link href="/manage-shift/end-of-shift-reports" className={styles.breadcrumbMuted}>
-              Shift Reports /
-            </Link>
-            <span className={styles.breadcrumbCurrent}>Daily Report</span>
+          <div className={styles.headerTopRow}>
+            <div className={styles.breadcrumb}>
+              <Link href={listHref} className={styles.breadcrumbMuted}>
+                Shift Reports /
+              </Link>
+              <span className={styles.breadcrumbCurrent}>Daily Report</span>
+            </div>
+            <div className={styles.datePicker}>
+              <button type="button" className={styles.dateCaret} onClick={() => setViewDate((d) => addDays(d, -1))} aria-label="Previous day">
+                <CaretLeftIcon />
+              </button>
+              <span className={styles.dateLabel}>{pickerDateFormatter.format(viewDate)}</span>
+              <button type="button" className={styles.dateCaret} onClick={() => setViewDate((d) => addDays(d, 1))} aria-label="Next day">
+                <CaretRightIcon />
+              </button>
+            </div>
           </div>
           <h1 className={styles.bigDate}>{dateFormatter.format(ANCHOR_DATE)}</h1>
         </header>
 
         <div className={styles.body}>
           <div className={styles.mainColumn}>
-            <div className={styles.dailySummaryCard}>
-              {/* Juan's own note only exists once he's actually signed off with one in the modal below
-                  — before that, there's nothing here to show yet, just the sign-off action itself. */}
-              {signOff && (
+            {dayInProgress ? (
+              // Nothing to sign off yet — at least one of today's shifts hasn't ended (Figma fileKey
+              // 0UJDRcrFiXkn16yfc2MUEW, node 247:21796's "Reports Pending" card), so there's no note or
+              // avatar row to show, just the same due-by copy every viewer sees.
+              <div className={styles.dailySummaryCard}>
                 <div className={styles.dailySummaryText}>
-                  {signOff.note.split("\n").map((line, i) => (
-                    <p key={i}>{line}</p>
-                  ))}
+                  <p className={styles.reportsPendingTitle}>Reports Pending</p>
+                  <p>Sign Off Due by 8:00am EST on {signOffDueLabel}.</p>
                 </div>
-              )}
-              <div className={styles.signOffPersonRow}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={dailyReport.siteManager.avatar} alt="" className={styles.signOffAvatar} />
-                <div className={styles.signOffInfo}>
-                  <div className={styles.signOffNameRow}>
-                    <span className={styles.signOffName}>{dailyReport.siteManager.name}</span>
-                    <span className={styles.signOffPosition}>{dailyReport.siteManager.position}</span>
-                  </div>
-                  {signOff && <span className={styles.signOffComplete}>Signed off at {signOff.timestamp}</span>}
-                </div>
-                {!signOff && (
-                  <Button variant="primary" theme="light" className={styles.signOffButtonFit} onClick={() => setSignOffModalOpen(true)}>
-                    Sign Off Day
-                  </Button>
-                )}
               </div>
-            </div>
+            ) : (
+              <div className={styles.dailySummaryCard}>
+                {/* Juan's own note only exists once he's actually signed off with one in the modal below
+                    — before that, there's nothing here to show yet, just the sign-off action itself. */}
+                {signOff && (
+                  <div className={styles.dailySummaryText}>
+                    {signOff.note.split("\n").map((line, i) => (
+                      <p key={i}>{line}</p>
+                    ))}
+                  </div>
+                )}
+                <div className={styles.signOffPersonRow}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={dailyReport.siteManager.avatar} alt="" className={styles.signOffAvatar} />
+                  <div className={styles.signOffInfo}>
+                    <div className={styles.signOffNameRow}>
+                      <span className={styles.signOffName}>{dailyReport.siteManager.name}</span>
+                      <span className={styles.signOffPosition}>{dailyReport.siteManager.position}</span>
+                    </div>
+                    {signOff && <span className={styles.signOffComplete}>Signed off at {signOff.timestamp}</span>}
+                  </div>
+                  {/* Only the Site Director can actually sign a day off — a Manager on Shift or Other
+                      User viewing an unsigned day just sees the same card with no action on it. */}
+                  {!signOff && viewerRole === "director" && (
+                    <Button variant="primary" theme="light" className={styles.signOffButtonFit} onClick={() => setSignOffModalOpen(true)}>
+                      Sign Off Day
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
 
-            {allShiftReports.map((report) => (
-              <ShiftCard
-                key={report.shiftKey}
-                report={report}
-                expanded={expandedShiftKeys.has(report.shiftKey)}
-                onToggle={() =>
-                  setExpandedShiftKeys((current) => {
-                    const next = new Set(current);
-                    if (next.has(report.shiftKey)) next.delete(report.shiftKey);
-                    else next.add(report.shiftKey);
-                    return next;
-                  })
-                }
+            {SHIFT_ORDER.map((shiftKey) => (
+              <ShiftRow
+                key={shiftKey}
+                shiftKey={shiftKey}
+                report={shiftReportByKey[shiftKey]}
+                tone={shiftTones[shiftKey]}
+                href={`/manage-shift/end-of-shift-report?shift=${shiftKey}${asParam}`}
               />
             ))}
           </div>
@@ -365,229 +442,65 @@ export function DailyReportPage({ contractBuildings }: DailyReportPageProps) {
   );
 }
 
-/* ---------------- Shift card ---------------- */
+/* ---------------- Shift row ---------------- */
 
-function ShiftCard({ report, expanded, onToggle }: { report: ShiftReport; expanded: boolean; onToggle: () => void }) {
+/**
+ * ShiftRow — a shift's own row on the Daily Report (Figma fileKey 0UJDRcrFiXkn16yfc2MUEW, node
+ * 265:34511's collapsed shift accordion). No longer an inline accordion: clicking one navigates to
+ * that shift's own full page (End of Shift Report, `?shift=X`) instead of expanding in place — the
+ * "left and right info changes" drill-down the shift's own page (managers, notes, hours, area/service
+ * coverage, quality on the left; a matching side panel on the right) already provides, rather than
+ * duplicating all of that content again here. `tone` (see ShiftRowTone) picks which of the four states
+ * (Figma node 247:21796 in-progress/not-started, 265:32034 overdue) this row renders as; only
+ * "completed" shows the three metric stats, since that's the only tone with a real finished report
+ * behind it in this prototype's data (allShiftReports/mapPageData).
+ */
+function ShiftRow({ shiftKey, report, tone, href }: { shiftKey: ShiftKey; report: ShiftReport; tone: ShiftRowTone; href: string }) {
+  const label = SHIFT_LABELS[shiftKey];
   const reportedNote = report.notes[0];
   const reportedByName = report.managers[0]?.name ?? reportedNote?.author.name;
-  const shiftQualityScores = QUALITY_DISPLAY_LABELS.map((label) => report.qualityScores.find((q) => q.label === label)).filter(
-    (s): s is NonNullable<typeof s> => Boolean(s)
-  );
-  const cardRef = useRef<HTMLDivElement>(null);
-  const [headcountModalOpen, setHeadcountModalOpen] = useState(false);
-  const [reportItsModalOpen, setReportItsModalOpen] = useState(false);
+  const managersOnShift = INITIAL_SHIFT_REPORTS[shiftKey].managers.length;
 
-  useEffect(() => {
-    if (expanded) cardRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, [expanded]);
+  const metaLabel =
+    tone === "completed"
+      ? reportedNote && `Reported at ${reportedNote.timestamp} by ${reportedByName}`
+      : tone === "inProgress"
+        ? `${managersOnShift} manager${managersOnShift === 1 ? "" : "s"} checked in`
+        : tone === "overdue"
+          ? `${label} Report Overdue`
+          : "Shift Not Started";
 
   return (
-    <div className={styles.shiftCard} ref={cardRef}>
-      <button type="button" className={styles.shiftCardHeader} onClick={onToggle} aria-expanded={expanded}>
+    <Link href={href} className={styles.shiftCard} data-tone={tone}>
+      <div className={styles.shiftCardHeader}>
         <div className={styles.shiftCardHeaderText}>
-          <span className={[styles.shiftCardTitle, expanded ? "" : styles.shiftCardTitleCollapsed].filter(Boolean).join(" ")}>
-            {report.label} Shift
+          <span className={styles.shiftCardTitle} data-tone={tone}>
+            {label} Shift{tone === "inProgress" ? " in Progress" : ""}
           </span>
-          {reportedNote && (
-            <span className={styles.shiftCardMeta}>
-              Reported at {reportedNote.timestamp} by {reportedByName}
-            </span>
-          )}
+          {metaLabel && <span className={styles.shiftCardMeta}>{metaLabel}</span>}
         </div>
 
-        <div className={styles.shiftCardStatsExpanded}>
-          <ShiftHeaderStat icon={<VectorSquareIcon />} title={`${report.areaCoverage.servicedPercent}% Areas Serviced`}>
-            {report.areaCoverage.servicedCount.toLocaleString()} of {report.areaCoverage.totalAreas.toLocaleString()}
-          </ShiftHeaderStat>
-          <ShiftHeaderStat icon={<BroomWideIcon />} iconClassName={styles.shiftHeaderStatIconPurple} title={`${report.servicesPercent}% Services Completed`}>
-            {report.servicesCompletedCount.toLocaleString()} of {report.servicesExpectedCount.toLocaleString()}
-          </ShiftHeaderStat>
-          <ShiftHeaderStat icon={<ClockIcon />} iconClassName={styles.shiftHeaderStatIconYellow} title={`${report.hoursPercent}% Hours Captured`}>
-            {report.hoursCapturedLabel} of {report.hoursPaidLabel}
-          </ShiftHeaderStat>
-        </div>
-
-        <ChevronDownIcon className={[styles.shiftCardCaret, expanded ? styles.shiftCardCaretOpen : ""].filter(Boolean).join(" ")} />
-      </button>
-
-      <div
-        className={[styles.shiftCardBodyWrap, expanded ? styles.shiftCardBodyWrapOpen : ""].filter(Boolean).join(" ")}
-        aria-hidden={!expanded}
-        inert={!expanded}
-      >
-        <div className={styles.shiftCardBody}>
-          <div className={styles.shiftCardBodyContent}>
-            <Section title="Shift Managers">
-              <div className={styles.managerList}>
-                {report.managers.map((manager, index) => {
-                  const clock = report.managerClockTimes[manager.name];
-                  return (
-                    <div key={manager.name} className={styles.managerRow}>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={manager.avatar} alt="" className={styles.managerAvatar} />
-                      <div className={styles.managerInfo}>
-                        <span className={styles.managerName}>{manager.name}</span>
-                        <span className={styles.managerPosition}>{manager.position}</span>
-                        {index === 0 && reportedNote && (
-                          <span className={styles.managerCheckedOut}>Reported at {reportedNote.timestamp}</span>
-                        )}
-                      </div>
-                      <div className={styles.managerDivider} />
-                      <ManagerTimeStat value={clock?.clockIn ?? "—"} label="Clocked In" />
-                      <ManagerTimeStat value={clock?.clockOut ?? "—"} label="Clocked Out" />
-                      <ManagerTimeStat value={clock?.totalTimeLabel ?? "—"} label="Total Time" />
-                    </div>
-                  );
-                })}
-              </div>
-            </Section>
-
-            <Section title="Shift Notes">
-              <div className={styles.noteV2List}>
-                {report.notes.map((note, i) => (
-                  <NoteCalloutV2Item key={`${note.author.name}-${i}`} note={note} />
-                ))}
-              </div>
-            </Section>
-
-            <Section title="Hours and Headcount">
-              <div className={styles.sectionRows}>
-                <LeadStatV2
-                  ringColor="var(--color-datavis-yellow-700)"
-                  percent={report.hoursPercent}
-                  amount={report.hoursCapturedLabel}
-                  label="Hours Captured"
-                  caption={`of ${report.hoursPaidLabel} shift time`}
-                />
-                <button
-                  type="button"
-                  className={[styles.headcountGrid, styles.headcountCard].join(" ")}
-                  onClick={() => setHeadcountModalOpen(true)}
-                >
-                  <HeadcountStat label="Scheduled Headcount" value={report.scheduledHeadcount} />
-                  <HeadcountStat label="Actual Arrival" value={report.actualArrival} />
-                  <HeadcountStat label="Total Absences" value={report.totalAbsences} />
-                  <div className={styles.headcountSubGroup}>
-                    <HeadcountInlineStat label="No Call/No Show" value={report.noCallNoShowCount} />
-                    <HeadcountInlineStat label="Call Outs" value={report.callOutsCount} />
-                  </div>
-                </button>
-              </div>
-              <div className={styles.noteV2List}>
-                {report.hoursNote.map((note, i) => (
-                  <NoteCalloutV2Item key={`${note.author.name}-${i}`} note={note} />
-                ))}
-              </div>
-            </Section>
-
-            <Section title="Area Coverage">
-              <div className={styles.areaCoverageStack}>
-                <AreaCoverageStat coverage={report.areaCoverage} />
-                <AreaCoverageBreakdownRow coverage={report.areaCoverage} />
-              </div>
-              <div className={styles.noteV2List}>
-                {report.areaCoverageNote.map((note, i) => (
-                  <NoteCalloutV2Item key={`${note.author.name}-${i}`} note={note} />
-                ))}
-              </div>
-            </Section>
-
-            <Section title="Service Coverage">
-              <LeadStatV2
-                ringColor="var(--color-datavis-purple-500)"
-                percent={report.servicesPercent}
-                amount={report.servicesCompletedCount.toLocaleString()}
-                label="Services Completed"
-                caption={`of ${report.servicesExpectedCount.toLocaleString()} expected`}
-              />
-              <div className={styles.noteV2List}>
-                {report.servicesNote.map((note, i) => (
-                  <NoteCalloutV2Item key={`${note.author.name}-${i}`} note={note} />
-                ))}
-              </div>
-            </Section>
-
-            <Section title="Quality">
-              <div className={styles.scoreChipRow}>
-                {shiftQualityScores.map((score) => (
-                  <div key={score.label} className={styles.scoreCard}>
-                    <span className={styles.scoreBadge} data-tone={score.tone}>
-                      {score.value}
-                    </span>
-                    <div className={styles.scoreCardTextGroup}>
-                      <span className={styles.scoreCardLabel}>{score.label}</span>
-                      <span className={styles.scoreCardCaption}>{score.count}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className={styles.qualitySubsectionRow}>
-                <button
-                  type="button"
-                  className={[styles.qualitySubsection, styles.qualitySubsectionButton].join(" ")}
-                  onClick={() => setReportItsModalOpen(true)}
-                >
-                  <h4 className={styles.qualitySubsectionTitle}>Report Its</h4>
-                  <div className={styles.qualityStatRow}>
-                    <HeadcountStat label="Submitted" value={report.totalReportIts} />
-                    <HeadcountStat label="Rejected" value={report.reportItsRejected} />
-                    <HeadcountStat label="Acceptance Rate" value={`${report.reportItsAcceptanceRate}%`} />
-                  </div>
-                </button>
-
-                <div className={styles.verticalDivider} />
-
-                <div className={styles.qualitySubsection}>
-                  <h4 className={styles.qualitySubsectionTitle}>Safety</h4>
-                  {report.safetyIssues.length === 0 ? (
-                    <span className={styles.safetyEmptyState}>There are no safety issues for this shift</span>
-                  ) : (
-                    <div className={styles.qualityStatRow}>
-                      <HeadcountStat label="Incidents" value={report.safetyIssues.length} />
-                      <div className={styles.headcountStat}>
-                        <span className={styles.headcountLabel}>Incident Status</span>
-                        <span className={styles.safetyReportStatusBadge}>
-                          <CircleCheckIcon className={styles.safetyReportStatusIcon} /> Incident Report Created
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className={styles.noteV2List}>
-                {report.scoresNote.map((note, i) => (
-                  <NoteCalloutV2Item key={`${note.author.name}-${i}`} note={note} />
-                ))}
-              </div>
-            </Section>
+        {tone === "completed" && (
+          <div className={styles.shiftCardStatsExpanded}>
+            <ShiftHeaderStat icon={<VectorSquareIcon />} title={`${report.areaCoverage.servicedPercent}% Areas Serviced`}>
+              {report.areaCoverage.servicedCount.toLocaleString()} of {report.areaCoverage.totalAreas.toLocaleString()}
+            </ShiftHeaderStat>
+            <ShiftHeaderStat icon={<BroomWideIcon />} iconClassName={styles.shiftHeaderStatIconPurple} title={`${report.servicesPercent}% Services Completed`}>
+              {report.servicesCompletedCount.toLocaleString()} of {report.servicesExpectedCount.toLocaleString()}
+            </ShiftHeaderStat>
+            <ShiftHeaderStat icon={<ClockIcon />} iconClassName={styles.shiftHeaderStatIconYellow} title={`${report.hoursPercent}% Hours Captured`}>
+              {report.hoursCapturedLabel} of {report.hoursPaidLabel}
+            </ShiftHeaderStat>
           </div>
-        </div>
+        )}
+
+        <ArrowRightIcon className={styles.shiftCardArrow} />
       </div>
-
-      <AssociateAttendanceModal
-        open={headcountModalOpen}
-        onClose={() => setHeadcountModalOpen(false)}
-        shiftLabel={report.label}
-        associates={report.associateAttendance}
-      />
-
-      <ReportItsModal open={reportItsModalOpen} onClose={() => setReportItsModalOpen(false)} shiftLabel={report.label} report={report} />
-    </div>
+    </Link>
   );
 }
 
 /* ---------------- Shared small pieces ---------------- */
-
-function Section({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <div className={styles.section}>
-      <h3 className={styles.sectionTitle}>{title}</h3>
-      <div className={styles.sectionBody}>{children}</div>
-    </div>
-  );
-}
 
 function ShiftHeaderStat({
   icon,
@@ -607,122 +520,6 @@ function ShiftHeaderStat({
         <span className={styles.shiftHeaderStatTitle}>{title}</span>
         <span className={styles.shiftHeaderStatSubtitle}>{children}</span>
       </div>
-    </div>
-  );
-}
-
-function LeadStatV2({
-  percent,
-  amount,
-  label,
-  caption,
-  ringColor,
-}: {
-  percent: number;
-  amount: string;
-  label: string;
-  caption: string;
-  ringColor: string;
-}) {
-  return (
-    <div className={styles.leadStatRow}>
-      <div className={styles.leadStatRing}>
-        <DonutRing percent={percent} color={ringColor} trackColor="var(--color-neutral-300)" size={68} strokeWidth={6} />
-        <span className={styles.leadStatRingLabel}>{percent}%</span>
-      </div>
-      <div className={styles.leadStatTextStack}>
-        <span className={styles.leadStatValueLabel}>{label}</span>
-        <div className={styles.leadStatValueRow}>
-          <span className={styles.leadStatStackValue}>{amount}</span>
-          <span className={styles.leadStatCaption}>{caption}</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function AreaCoverageStat({ coverage }: { coverage: AreaCoverageBreakdown }) {
-  return (
-    <div className={styles.leadStatRow}>
-      <div className={styles.leadStatRing}>
-        <SegmentedDonutRing
-          size={68}
-          strokeWidth={6}
-          segments={[
-            { value: coverage.notServicedCount, color: "var(--color-danger-300)" },
-            { value: coverage.underServicedCount, color: "var(--color-warning-300)" },
-            { value: coverage.fullyServicedCount, color: "var(--color-success-300)" },
-            { value: coverage.overServicedCount, color: "var(--color-success-700)" },
-            { value: coverage.noFrequencyCount, color: "var(--color-neutral-500)" },
-          ]}
-        />
-        <span className={styles.leadStatRingLabel}>{coverage.servicedPercent}%</span>
-      </div>
-      <div className={styles.leadStatTextStack}>
-        <span className={styles.leadStatValueLabel}>Areas Serviced</span>
-        <div className={styles.leadStatValueRow}>
-          <span className={styles.leadStatStackValue}>{coverage.servicedCount.toLocaleString()}</span>
-          <span className={styles.leadStatCaption}>of {coverage.totalAreas.toLocaleString()} total areas</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-const COVERAGE_BREAKDOWN_ITEMS: { key: keyof AreaCoverageBreakdown; label: string; color: string }[] = [
-  { key: "notServicedCount", label: "Not Serviced", color: "var(--color-danger-300)" },
-  { key: "underServicedCount", label: "Under-Serviced", color: "var(--color-warning-300)" },
-  { key: "fullyServicedCount", label: "Fully Serviced", color: "var(--color-success-300)" },
-  { key: "overServicedCount", label: "Over-Serviced", color: "var(--color-success-700)" },
-  { key: "noFrequencyCount", label: "No Frequency", color: "var(--color-neutral-500)" },
-];
-
-function AreaCoverageBreakdownRow({ coverage }: { coverage: AreaCoverageBreakdown }) {
-  return (
-    <div className={styles.coverageBreakdownRow}>
-      {COVERAGE_BREAKDOWN_ITEMS.map((item) => {
-        const count = coverage[item.key] as number;
-        const percent = coverage.totalAreas > 0 ? Math.round((count / coverage.totalAreas) * 100) : 0;
-        return (
-          <div key={item.label} className={styles.coverageBreakdownItem}>
-            <div className={styles.coverageBreakdownLabelRow}>
-              <span className={styles.coverageBreakdownDot} style={{ backgroundColor: item.color }} />
-              <span className={styles.coverageBreakdownLabel}>{item.label}</span>
-            </div>
-            <div className={styles.coverageBreakdownValueRow}>
-              <span className={styles.coverageBreakdownValue}>{count.toLocaleString()} areas</span>
-              <span className={styles.coverageBreakdownPercent}>({percent}%)</span>
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function HeadcountStat({ label, value }: { label: string; value: number | string }) {
-  return (
-    <div className={styles.headcountStat}>
-      <span className={styles.headcountLabel}>{label}</span>
-      <span className={styles.headcountValue}>{typeof value === "number" ? value.toLocaleString() : value}</span>
-    </div>
-  );
-}
-
-function HeadcountInlineStat({ label, value }: { label: string; value: number }) {
-  return (
-    <div className={styles.headcountInlineStat}>
-      <span className={styles.headcountInlineLabel}>{label}</span>
-      <span className={styles.headcountInlineValue}>{value.toLocaleString()}</span>
-    </div>
-  );
-}
-
-function ManagerTimeStat({ value, label }: { value: string; label: string }) {
-  return (
-    <div className={styles.managerTimeStat}>
-      <span className={styles.managerTimeValue}>{value}</span>
-      <span className={styles.managerTimeLabel}>{label}</span>
     </div>
   );
 }
@@ -754,43 +551,3 @@ function SidebarStat({
   );
 }
 
-function tagSlug(tag: string): string {
-  return tag
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-}
-
-function NoteCalloutV2Item({ note }: { note: ManagerNote }) {
-  return (
-    <div className={styles.noteV2}>
-      <p className={styles.noteV2Text}>
-        {note.text.split("\n").map((line, i) => (
-          <span key={i}>
-            {line}
-            <br />
-          </span>
-        ))}
-      </p>
-      {note.tags.length > 0 && (
-        <div className={styles.noteV2TagRow}>
-          {note.tags.map((tag) => (
-            <span key={tag} className={styles.noteV2Tag} data-tag={tagSlug(tag)}>
-              {tag}
-            </span>
-          ))}
-        </div>
-      )}
-      <div className={styles.noteV2Footer}>
-        {note.author.avatar ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={note.author.avatar} alt="" className={styles.noteV2Avatar} />
-        ) : (
-          <span className={styles.noteV2Avatar} aria-hidden="true" />
-        )}
-        <span className={styles.noteV2Author}>{note.author.name}</span>
-        <span className={styles.noteV2Time}>{note.timestamp}</span>
-      </div>
-    </div>
-  );
-}

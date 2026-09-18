@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Nav } from "./Nav";
 import { ManagerQueuePanel } from "./ManagerQueuePanel";
 import { ButtonGroup } from "../ui/ButtonGroup";
@@ -20,18 +21,18 @@ import {
   PlusCircleIcon,
 } from "./icons";
 import { siteInfo } from "../../lib/homeDashboardData";
-import { SHIFT_END_LABEL, SHIFT_LABELS } from "../../lib/managerShiftReportData";
+import { VIEWER_ROLE_LABELS, parseViewerRole, type ViewerRole } from "../../lib/managerShiftReportData";
 import {
   SITE_DIRECTOR,
   buildShiftReportMonth,
   getDayInProgressLabel,
   getDayRowDateLabel,
+  getLateShiftNote,
   getMonthLabel,
   getShiftReportRowV2Display,
   getSignOffStatusDisplay,
   sortDaysCurrentFirst,
   type ShiftReportDayRow,
-  type ShiftReportRow,
 } from "../../lib/shiftReportListData";
 import styles from "./EndOfShiftReportListPage.module.css";
 
@@ -40,12 +41,22 @@ function canSignOffDay(day: ShiftReportDayRow): boolean {
   return !day.isFuture && !day.signedOffBySiteDirector && getSignOffStatusDisplay(day).tone === "warning";
 }
 
-/** The Daily Report link for a day that already opens it (see opensDailyReport/canSignOff above) — an already-signed-off day carries its own signedOffAtLabel along as a query param, so the Daily Report page opens already showing that same signed-off state instead of contradicting the list with its own "Sign Off Day" action. A day that's merely ready for sign-off still opens the Daily Report unsigned, same as visiting it fresh. */
-function dailyReportHref(day: ShiftReportDayRow): string {
-  if (!day.signedOffBySiteDirector) return "/manage-shift/daily-report";
-  const params = new URLSearchParams({ signedOff: "1" });
-  if (day.signedOffAtLabel) params.set("at", day.signedOffAtLabel);
-  return `/manage-shift/daily-report?${params.toString()}`;
+/** Whether a day's row actually opens the Daily Report instead of toggling anything in place — every day but a genuinely future one now qualifies (see ShiftReportDayRow/buildShiftReportMonth, which no longer produces future rows at all): a signed-off or ready-to-sign-off day opens it read-through-to-sign-off, and today opens it too so a Site Director can watch the day's shifts land live (Figma fileKey 0UJDRcrFiXkn16yfc2MUEW, node 247:21796). */
+function opensDailyReport(day: ShiftReportDayRow): boolean {
+  return day.signedOffBySiteDirector || canSignOffDay(day) || day.isToday;
+}
+
+/** The Daily Report link for a day that opens it (see opensDailyReport) — an already-signed-off day carries its own signedOffAtLabel along as a query param, so the Daily Report page opens already showing that same signed-off state instead of contradicting the list with its own "Sign Off Day" action. Today carries a `today=1` marker instead, so the Daily Report reads each shift's own live status rather than always showing the same illustrative "completed" sample it uses for every other day (this prototype has no per-day report history — see DailyReportPage). `viewerRole` (see ViewerRole) rides along as `as=` so the Daily Report and, from there, a shift's own page (End of Shift Report) know whether to show the Sign Off/note-editing UI at all. */
+function dailyReportHref(day: ShiftReportDayRow, viewerRole: ViewerRole): string {
+  const params = new URLSearchParams();
+  if (day.signedOffBySiteDirector) {
+    params.set("signedOff", "1");
+    if (day.signedOffAtLabel) params.set("at", day.signedOffAtLabel);
+  }
+  if (day.isToday) params.set("today", "1");
+  if (viewerRole !== "director") params.set("as", viewerRole);
+  const query = params.toString();
+  return query ? `/manage-shift/daily-report?${query}` : "/manage-shift/daily-report";
 }
 
 type GridVersion = "v1" | "v2";
@@ -54,6 +65,8 @@ const GRID_VERSION_OPTIONS = [
   { id: "v1" as GridVersion, label: "V1" },
   { id: "v2" as GridVersion, label: "V2" },
 ];
+
+const VIEWER_ROLE_OPTIONS = (Object.keys(VIEWER_ROLE_LABELS) as ViewerRole[]).map((role) => ({ id: role, label: VIEWER_ROLE_LABELS[role] }));
 
 /**
  * EndOfShiftReportListPage — sits between the Manager Queue's "End of
@@ -71,15 +84,17 @@ const GRID_VERSION_OPTIONS = [
  * Day/Swing/Graveyard toggle once opened.
  */
 export function EndOfShiftReportListPage() {
+  const searchParams = useSearchParams();
   const [managerQueueOpen, setManagerQueueOpen] = useState(false);
   const [gridVersion, setGridVersion] = useState<GridVersion>("v1");
   const [monthOffset, setMonthOffset] = useState(0);
+  // Who's browsing the list right now (see ViewerRole) — starts from `?as=` so a link back here (the
+  // Daily Report/End of Shift Report breadcrumbs) keeps whatever persona was already selected;
+  // otherwise defaults to Site Director. Carried forward into every day's own Daily Report link below.
+  const [viewerRole, setViewerRole] = useState<ViewerRole>(() => parseViewerRole(searchParams.get("as")));
   // Default reading order is "current day first" (sortDaysCurrentFirst) — flipping this shows the
   // classic oldest-first calendar order instead.
   const [oldestFirst, setOldestFirst] = useState(false);
-  // Which days the manager has manually toggled away from their own default expand state (today
-  // starts expanded, every other day starts collapsed) — see isDayExpanded.
-  const [toggledDateKeys, setToggledDateKeys] = useState<Set<string>>(new Set());
   // Starts null so the server-rendered markup and the client's first render agree exactly (see
   // EndOfShiftReportPage's own note) — today's row depends on the real wall clock, which the server
   // can't know in advance. Filled in immediately after mount, client-side only.
@@ -100,22 +115,6 @@ export function EndOfShiftReportListPage() {
 
   function dayKey(day: ShiftReportDayRow): string {
     return day.date.toISOString();
-  }
-
-  function isDayExpanded(day: ShiftReportDayRow): boolean {
-    const toggled = toggledDateKeys.has(dayKey(day));
-    return day.isToday ? !toggled : toggled;
-  }
-
-  function toggleDay(day: ShiftReportDayRow) {
-    if (day.isFuture) return;
-    setToggledDateKeys((prev) => {
-      const next = new Set(prev);
-      const key = dayKey(day);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
   }
 
   return (
@@ -147,6 +146,15 @@ export function EndOfShiftReportListPage() {
       />
 
       <main className={styles.main}>
+        {/* View-as toggle — there's no real auth in this prototype (see ViewerRole), so this just
+            previews what each persona would see: a Site Director can sign a completed day off; a
+            Manager on Shift can add notes/complete a report, but only for whichever shift is actually
+            theirs right now; everyone else gets the exact same pages read-only. */}
+        <div className={styles.viewAsRow}>
+          <span className={styles.viewAsLabel}>Viewing as</span>
+          <ButtonGroup options={VIEWER_ROLE_OPTIONS} value={viewerRole} onChange={setViewerRole} variant="segmented" theme="light" aria-label="View as" />
+        </div>
+
         <div className={styles.rollup}>
           <h1 className={styles.rollupTitle}>Shift Reports</h1>
 
@@ -198,7 +206,7 @@ export function EndOfShiftReportListPage() {
 
             <div className={styles.dayCards}>
               {orderedDays.map((day) => (
-                <DayCard key={dayKey(day)} day={day} expanded={isDayExpanded(day)} onToggle={() => toggleDay(day)} />
+                <DayCard key={dayKey(day)} day={day} viewerRole={viewerRole} />
               ))}
               {now && orderedDays.length === 0 && <p className={styles.emptyState}>No days to show for this month.</p>}
             </div>
@@ -231,7 +239,7 @@ export function EndOfShiftReportListPage() {
 
             <div className={styles.dayCards}>
               {orderedDays.map((day) => (
-                <DayRowV2 key={dayKey(day)} day={day} />
+                <DayRowV2 key={dayKey(day)} day={day} viewerRole={viewerRole} />
               ))}
               {now && orderedDays.length === 0 && <p className={styles.emptyState}>No days to show for this month.</p>}
             </div>
@@ -257,25 +265,15 @@ function PersonChip({ name, role, avatar }: { name: string; role: string; avatar
   );
 }
 
-function DayCard({ day, expanded, onToggle }: { day: ShiftReportDayRow; expanded: boolean; onToggle: () => void }) {
+function DayCard({ day, viewerRole }: { day: ShiftReportDayRow; viewerRole: ViewerRole }) {
   const dateLabel = getDayRowDateLabel(day.date);
   const dayInProgress = getDayInProgressLabel(day);
   const signOffStatus = getSignOffStatusDisplay(day);
-  const isOpen = expanded && !day.isFuture;
-  // A signed-off day, or one that's just ready for sign-off, opens the whole-day Daily Report (the
-  // same document the Map's "View Daily Report" opens, just as a real 4insite page instead of a
-  // modal) instead of toggling the per-shift accordion — signing off itself only happens there, not
-  // from this list, so both states point the Site Director to the one place that can actually do it.
-  const isSignedOff = day.signedOffBySiteDirector;
-  const canSignOff = canSignOffDay(day);
-  const opensDailyReport = isSignedOff || canSignOff;
+  const lateShiftNote = getLateShiftNote(day);
 
   const rowContent = (
     <>
       <div className={styles.dayCell}>
-        {!opensDailyReport && (
-          <CaretRightIcon className={[styles.expandCaret, isOpen ? styles.expandCaretOpen : ""].filter(Boolean).join(" ")} />
-        )}
         <div className={styles.dayCellText}>
           <span className={styles.dayDate}>{dateLabel}</span>
           {dayInProgress && <span className={styles.dayInProgress}>{dayInProgress}</span>}
@@ -283,20 +281,19 @@ function DayCard({ day, expanded, onToggle }: { day: ShiftReportDayRow; expanded
       </div>
 
       <div className={styles.signOffStatusCell}>
-        {day.isFuture ? (
-          <span className={styles.cellMutedDash}>—</span>
-        ) : (
-          <>
-            <span className={styles.signOffTitle} data-tone={signOffStatus.tone}>
-              {signOffStatus.tone === "success" && <CircleCheckIcon className={styles.signOffTitleIcon} />}
-              {signOffStatus.title}
-            </span>
-            {signOffStatus.caption && (
-              <span className={styles.signOffCaption} data-tone={signOffStatus.tone}>
-                {signOffStatus.caption}
-              </span>
-            )}
-          </>
+        <span className={styles.signOffTitle} data-tone={signOffStatus.tone}>
+          {signOffStatus.tone === "success" && <CircleCheckIcon className={styles.signOffTitleIcon} />}
+          {signOffStatus.title}
+        </span>
+        {signOffStatus.caption && (
+          <span className={styles.signOffCaption} data-tone={signOffStatus.tone}>
+            {signOffStatus.caption}
+          </span>
+        )}
+        {lateShiftNote && (
+          <span className={styles.signOffCaption} data-tone="warning">
+            {lateShiftNote}
+          </span>
         )}
       </div>
 
@@ -316,62 +313,10 @@ function DayCard({ day, expanded, onToggle }: { day: ShiftReportDayRow; expanded
 
   return (
     <div className={styles.dayCard}>
-      {opensDailyReport ? (
-        <Link href={dailyReportHref(day)} className={styles.dayHeaderRow}>
-          {rowContent}
-        </Link>
-      ) : (
-        <button type="button" className={styles.dayHeaderRow} onClick={onToggle} disabled={day.isFuture} aria-expanded={isOpen}>
-          {rowContent}
-        </button>
-      )}
-
-      {isOpen && day.shifts.map((shift) => <ShiftChildRow key={shift.shiftKey} shift={shift} />)}
+      <Link href={dailyReportHref(day, viewerRole)} className={styles.dayHeaderRow}>
+        {rowContent}
+      </Link>
     </div>
-  );
-}
-
-function ShiftChildRow({ shift }: { shift: ShiftReportRow }) {
-  const label = SHIFT_LABELS[shift.shiftKey];
-
-  return (
-    <Link href={`/manage-shift/end-of-shift-report?shift=${shift.shiftKey}`} className={styles.childRow}>
-      <span className={styles.childDayCell}>{label} Shift</span>
-
-      <div className={styles.signOffStatusCell}>
-        {shift.status === "notSubmitted" && <span className={styles.overduePill}>{label} Report Overdue</span>}
-        {shift.status === "dueLater" && (
-          <>
-            <span className={styles.signOffTitle} data-tone="neutral">
-              Shift In Progress
-            </span>
-            <span className={styles.signOffCaption}>Report Due at {SHIFT_END_LABEL[shift.shiftKey]}</span>
-          </>
-        )}
-        {shift.status === "upcoming" && <span className={styles.cellMutedDash}>—</span>}
-        {shift.status === "completed" && (
-          <>
-            <span className={styles.signOffTitle}>
-              <CircleCheckIcon className={styles.signOffTitleIcon} />
-              Report Completed
-            </span>
-            {shift.completedAtLabel && <span className={styles.signOffCaption}>{shift.completedAtLabel}</span>}
-          </>
-        )}
-      </div>
-
-      <div className={styles.signedOffByCell}>
-        {shift.status === "completed" && shift.completedByName && shift.completedByAvatar ? (
-          <PersonChip name={shift.completedByName} role={shift.completedByRole ?? ""} avatar={shift.completedByAvatar} />
-        ) : (
-          <span className={styles.cellMutedDash}>—</span>
-        )}
-      </div>
-
-      <span className={styles.rowArrow}>
-        <ArrowRightIcon />
-      </span>
-    </Link>
   );
 }
 
@@ -379,10 +324,9 @@ function ShiftChildRow({ shift }: { shift: ShiftReportRow }) {
  * The "v2" flat data-grid row (Figma fileKey 0UJDRcrFiXkn16yfc2MUEW, node 229:1569) — one row per
  * day, no accordion. See getShiftReportRowV2Display for how the five columns are derived.
  */
-function DayRowV2({ day }: { day: ShiftReportDayRow }) {
+function DayRowV2({ day, viewerRole }: { day: ShiftReportDayRow; viewerRole: ViewerRole }) {
   const dateLabel = getDayRowDateLabel(day.date);
   const v2 = getShiftReportRowV2Display(day);
-  const canSignOff = canSignOffDay(day);
   const rowClassName = [styles.dayRowV2, day.isFuture ? styles.dayRowV2Disabled : ""].filter(Boolean).join(" ");
 
   const content = (
@@ -454,10 +398,10 @@ function DayRowV2({ day }: { day: ShiftReportDayRow }) {
     );
   }
 
-  // A signed-off day, or one that's just ready for sign-off, opens the consolidated Daily Report (so
-  // the Site Director can review every shift's own data there before signing off — that's the only
-  // place sign-off actually happens, not this list) instead of the per-shift end-of-shift report.
-  const href = day.signedOffBySiteDirector || canSignOff ? dailyReportHref(day) : "/manage-shift/end-of-shift-report";
+  // Every non-future day opens the consolidated Daily Report (so the Site Director can review every
+  // shift's own data there before signing off — that's the only place sign-off actually happens, not
+  // this list), including today, which reads each shift's own live status there (see opensDailyReport).
+  const href = opensDailyReport(day) ? dailyReportHref(day, viewerRole) : "/manage-shift/end-of-shift-report";
 
   return (
     <Link href={href} className={rowClassName}>
