@@ -162,6 +162,13 @@
   color: var(--color-text-lt-grey);
 }
 
+.reportsPendingCaption {
+  font-family: var(--type-body-md-family);
+  font-size: var(--type-body-md-size);
+  font-weight: var(--type-body-md-weight);
+  line-height: var(--type-body-md-leading);
+}
+
 /* "Sign off overdue for the daily report" — the non-director read-only state of .dailySummaryCard once
    every shift is in but the Site Director hasn't signed off yet (Figma fileKey 0UJDRcrFiXkn16yfc2MUEW,
    node 326:46528). */
@@ -329,12 +336,6 @@
   color: var(--color-text-lt-grey);
 }
 
-.shiftCardStatusOverdue {
-  font-family: var(--type-h4-family);
-  font-weight: var(--type-h4-weight);
-  font-size: var(--type-h4-size);
-  color: var(--color-text-lt-danger);
-}
 
 /* Header stats (Areas Serviced / Services Completed / Hours Captured) — a two-line "X% Label" + "A of B" pair per stat, shown the same way whether the card is collapsed or expanded. */
 .shiftCardStatsExpanded {
@@ -1094,8 +1095,10 @@
 }
 
 .signOffComplete {
-  font-family: var(--type-body-sm-family);
-  font-size: var(--type-body-lg-size);
+  font-family: var(--type-body-md-family);
+  font-size: var(--type-body-md-size);
+  font-weight: var(--type-body-md-weight);
+  line-height: var(--type-body-md-leading);
   color: var(--color-text-lt-success);
 }
 
@@ -1266,4 +1269,167 @@
   flex-direction: column;
   gap: 20px;
   width: 100%;
+}
+
+/* ============================================================
+   DARK THEME — mirrors every color-bearing rule this page actually
+   uses (see DailyReportPage.tsx), scoped under the page's own
+   [data-theme="dark"] (set by useThemePreference/ThemeToggle).
+   ============================================================ */
+
+.page[data-theme="dark"] {
+  background-color: var(--surface-dt-page);
+  color: var(--color-text-dt-default);
+}
+
+.page[data-theme="dark"] .breadcrumbMuted {
+  color: var(--color-text-dt-grey);
+}
+
+.page[data-theme="dark"] .breadcrumbMuted:hover {
+  color: var(--color-text-dt-blue);
+}
+
+.page[data-theme="dark"] .breadcrumbCurrent {
+  color: var(--color-text-dt-default);
+}
+
+.page[data-theme="dark"] .datePicker {
+  background-color: var(--surface-dt-card);
+}
+
+.page[data-theme="dark"] .dateCaret,
+.page[data-theme="dark"] .dateLabel {
+  color: var(--color-text-dt-blue);
+}
+
+.page[data-theme="dark"] .bigDate {
+  color: var(--color-text-dt-default);
+}
+
+.page[data-theme="dark"] .dailySummaryCard {
+  border-left-color: var(--color-neutral-700);
+  background-color: var(--surface-dt-card);
+  box-shadow: var(--shadow-dt-card);
+}
+
+.page[data-theme="dark"] .dailySummaryText,
+.page[data-theme="dark"] .reportsPendingGroup {
+  color: var(--color-text-dt-default);
+}
+
+.page[data-theme="dark"] .reportsPendingTitle,
+.page[data-theme="dark"] .signOffOverdueTitle,
+.page[data-theme="dark"] .signOffOverdueCaption {
+  color: var(--color-text-dt-grey);
+}
+
+.page[data-theme="dark"] .shiftCard {
+  background-color: var(--surface-dt-card);
+  box-shadow: var(--shadow-dt-card);
+}
+
+.page[data-theme="dark"] .shiftCardTitle {
+  color: var(--color-text-dt-default);
+}
+
+.page[data-theme="dark"] .shiftCardMeta {
+  color: var(--color-text-dt-grey);
+}
+
+.page[data-theme="dark"] .shiftCardMetaDanger {
+  color: var(--color-text-dt-danger);
+}
+
+.page[data-theme="dark"] .shiftCardStatusTitle {
+  color: var(--color-text-dt-default);
+}
+
+.page[data-theme="dark"] .shiftCardStatusCaption {
+  color: var(--color-text-dt-grey);
+}
+
+.page[data-theme="dark"] .shiftHeaderStatIcon {
+  color: var(--color-text-dt-blue);
+}
+
+.page[data-theme="dark"] .shiftHeaderStatTitle {
+  color: var(--color-text-dt-default);
+}
+
+.page[data-theme="dark"] .shiftHeaderStatSubtitle {
+  color: var(--color-text-dt-grey);
+}
+
+.page[data-theme="dark"] .shiftCardArrow {
+  color: var(--color-text-dt-blue);
+}
+
+.page[data-theme="dark"] .shiftCardArrow[data-tone="notStarted"] {
+  color: var(--color-text-dt-grey);
+}
+
+.page[data-theme="dark"] .sidebarStatIcon {
+  color: var(--color-text-dt-blue);
+}
+
+.page[data-theme="dark"] .sidebarStatIconOrange {
+  color: var(--color-accent-dt-warning);
+}
+
+.page[data-theme="dark"] .sidebarStatIconPink {
+  color: var(--color-accent-dt-danger);
+}
+
+.page[data-theme="dark"] .sidebarStatValue,
+.page[data-theme="dark"] .sidebarStatLabel {
+  color: var(--color-text-dt-default);
+}
+
+.page[data-theme="dark"] .sidebarStatCaption {
+  color: var(--color-text-dt-grey);
+}
+
+.page[data-theme="dark"] .sidebarSubRow span:first-child {
+  color: var(--color-text-dt-grey);
+}
+
+.page[data-theme="dark"] .sidebarSubRow span:last-child {
+  color: var(--color-text-dt-default);
+}
+
+.page[data-theme="dark"] .summaryCard {
+  background-color: var(--surface-dt-card);
+  box-shadow: var(--shadow-dt-modal);
+}
+
+.page[data-theme="dark"] .summaryTitle {
+  color: var(--color-text-dt-default);
+}
+
+.page[data-theme="dark"] .hairline {
+  background-color: var(--surface-dt-hairline);
+}
+
+.page[data-theme="dark"] .signOffName,
+.page[data-theme="dark"] .signOffHeading {
+  color: var(--color-text-dt-default);
+}
+
+.page[data-theme="dark"] .signOffPosition {
+  color: var(--color-text-dt-grey);
+}
+
+.page[data-theme="dark"] .signOffComplete {
+  color: var(--color-text-dt-success);
+}
+
+.page[data-theme="dark"] .signOffNoteInput {
+  border-color: var(--color-neutral-700);
+  background-color: var(--surface-dt-card-sunken);
+  color: var(--color-text-dt-default);
+}
+
+.page[data-theme="dark"] .signOffNoteInput::placeholder {
+  color: var(--color-text-dt-grey);
 }

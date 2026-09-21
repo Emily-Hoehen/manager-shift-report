@@ -1,7 +1,9 @@
 /* ============================================================
    EndOfShiftReportListPage — the "Shift Reports" month list.
-   Figma fileKey 0UJDRcrFiXkn16yfc2MUEW, node 229:5034. Light
-   theme only.
+   Figma fileKey 0UJDRcrFiXkn16yfc2MUEW, node 229:5034. Light by
+   default; a `.page[data-theme="dark"]` toggle (useThemePreference)
+   swaps every color-bearing rule below to its dark-theme pair — see
+   the DARK THEME section at the end of this file.
    ============================================================ */
 
 .page {
@@ -437,5 +439,121 @@
   .rowArrow {
     display: none;
   }
+}
+
+/* ============================================================
+   DARK THEME — mirrors every color-bearing rule above, scoped
+   under the page's own [data-theme="dark"] (set by
+   useThemePreference/ThemeToggle). Layout/spacing rules above are
+   shared as-is; only color/shadow tokens swap to their DT pair.
+   ============================================================ */
+
+.page[data-theme="dark"] {
+  background-color: var(--surface-dt-page);
+  color: var(--color-text-dt-default);
+}
+
+.page[data-theme="dark"] .viewAsLabel {
+  color: var(--color-text-dt-grey);
+}
+
+.page[data-theme="dark"] .rollupTitle {
+  color: var(--color-text-dt-default);
+}
+
+.page[data-theme="dark"] .monthPicker {
+  background-color: var(--surface-dt-card);
+}
+
+.page[data-theme="dark"] .monthCaret,
+.page[data-theme="dark"] .monthLabel {
+  color: var(--color-text-dt-blue);
+}
+
+.page[data-theme="dark"] .tableHeader {
+  background-color: var(--surface-dt-card);
+}
+
+.page[data-theme="dark"] .headerCell,
+.page[data-theme="dark"] .sortableHeaderCell {
+  color: var(--color-text-dt-grey);
+}
+
+.page[data-theme="dark"] .dayCard {
+  background-color: var(--surface-dt-card);
+  box-shadow: var(--shadow-dt-card);
+}
+
+.page[data-theme="dark"] .emptyState {
+  color: var(--color-text-dt-grey);
+}
+
+.page[data-theme="dark"] .childRow {
+  border-top-color: var(--color-neutral-700);
+}
+
+.page[data-theme="dark"] .expandCaret {
+  color: var(--color-text-dt-grey);
+}
+
+.page[data-theme="dark"] .dayDate {
+  color: var(--color-text-dt-default);
+}
+
+.page[data-theme="dark"] .dayInProgress {
+  color: var(--color-text-dt-blue);
+}
+
+.page[data-theme="dark"] .childDayCell {
+  color: var(--color-text-dt-default);
+}
+
+.page[data-theme="dark"] .overduePill {
+  background-color: var(--wash-danger-light-15);
+  color: var(--color-text-dt-danger);
+}
+
+.page[data-theme="dark"] .cellMutedDash {
+  color: var(--color-text-dt-grey);
+}
+
+.page[data-theme="dark"] .personAvatar {
+  background-color: var(--color-neutral-700);
+}
+
+.page[data-theme="dark"] .personName {
+  color: var(--color-text-dt-default);
+}
+
+.page[data-theme="dark"] .personRole {
+  color: var(--color-text-dt-grey);
+}
+
+.page[data-theme="dark"] .signOffTitle {
+  color: var(--color-text-dt-default);
+}
+
+.page[data-theme="dark"] .signOffTitle[data-tone="neutral"] {
+  color: var(--color-text-dt-grey);
+}
+
+.page[data-theme="dark"] .signOffTitleIcon {
+  color: var(--color-text-dt-success);
+}
+
+.page[data-theme="dark"] .signOffCaption {
+  color: var(--color-text-dt-grey);
+}
+
+.page[data-theme="dark"] .signOffCaption[data-tone="danger"] {
+  color: var(--color-text-dt-danger);
+}
+
+.page[data-theme="dark"] .signOffCaption[data-tone="warning"] {
+  color: var(--color-text-dt-warning);
+}
+
+.page[data-theme="dark"] .rowArrow {
+  color: var(--color-text-dt-blue);
 }
 

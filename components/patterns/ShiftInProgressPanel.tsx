@@ -4,7 +4,6 @@ import type { ReactNode } from "react";
 import {
   BroomWideIcon,
   CircleCheckIcon,
-  CircleExclamationIcon,
   ClipboardCheckIcon,
   ClockIcon,
   TriangleExclamationIcon,
@@ -14,6 +13,7 @@ import {
 import { Button } from "../ui/Button";
 import { DonutRing } from "../ui/Charts";
 import { formatHMS, type ShiftLiveStatus } from "../../lib/managerShiftReportData";
+import type { ThemePreference } from "../../hooks/useThemePreference";
 import styles from "./ShiftInProgressPanel.module.css";
 
 export type ShiftInProgressPanelManager = { id: string; name: string; avatar: string };
@@ -60,13 +60,12 @@ export type ShiftInProgressPanelProps = {
   sections: ShiftInProgressPanelSection[];
   isLocked: boolean;
   /** True for a past, already-ended shift whose report never actually came in (isPastMissedShift) —
-      shown instead of the ticking in-progress timer, since there's no live shift underway to time; still
-      unlocked underneath (a manager can submit it late), just like a shift that's still in progress. */
+      the panel no longer shows this in its own top row (see EndOfShiftReportPage's own header, Figma
+      fileKey 0UJDRcrFiXkn16yfc2MUEW, node 312:44213), just used here to know the ticking timer/ring
+      shouldn't render either. Still unlocked underneath (a manager can submit it late), just like a
+      shift that's still in progress. */
   notSubmittedPastDeadline?: boolean;
-  /** Who completed the report and when, in the Figma copy's own "Report Submitted by {name} at {label}" phrasing — only shown once isLocked and completedStats are both present. */
-  submittedByName?: string;
-  submittedAtLabel?: string;
-  /** The finished-report numbers (see ShiftCompletedStats) — when present alongside isLocked, replaces the note-count checklist with the real rollup; omitted, the panel falls back to its old plain "{Shift} Completed" title with the checklist still showing (e.g. a shift a manager just completed from this same page, before any richer data was wired up). */
+  /** The finished-report numbers (see ShiftCompletedStats) — when present alongside isLocked, replaces the note-count checklist with the real rollup; omitted, the panel falls back to its old plain checklist still showing (e.g. a shift a manager just completed from this same page, before any richer data was wired up). */
   completedStats?: ShiftCompletedStats;
   canComplete: boolean;
   /** Hides the Complete Shift Report button and its hint entirely — for a viewer who could never take this action (Site Director, Other User), not just one who can't take it yet. Defaults to true. */
@@ -74,6 +73,8 @@ export type ShiftInProgressPanelProps = {
   onCompleteClick: () => void;
   /** Jumps the left column to that section's card, expanding it first if it's collapsed — key is "managers" for the Shift Managers row, or a section's own key otherwise. */
   onSelectSection: (key: string) => void;
+  /** Defaults to "light" (this page's own default) — the page passes its own live useThemePreference value through. */
+  theme?: ThemePreference;
 };
 
 /**
@@ -101,47 +102,27 @@ export function ShiftInProgressPanel({
   sections,
   isLocked,
   notSubmittedPastDeadline = false,
-  submittedByName,
-  submittedAtLabel,
   completedStats,
   canComplete,
   showCompleteAction = true,
   onCompleteClick,
   onSelectSection,
+  theme = "light",
 }: ShiftInProgressPanelProps) {
   const notStarted = liveStatus === "notStarted";
   const [hh, mm, ss] = formatHMS(notStarted ? 0 : elapsedSeconds).split(":");
   const showCompletedRollup = isLocked && Boolean(completedStats);
+  // The shift's own submitted/overdue/still-due status now lives in the page's own header instead (see
+  // EndOfShiftReportPage, Figma fileKey 0UJDRcrFiXkn16yfc2MUEW, node 312:44213) — this panel only ever
+  // shows the live ticking timer/ring while the shift is actually still ticking (in progress or not yet
+  // started), and a plain "{Shift} Shift Summary" title the rest of the time (submitted, overdue, or
+  // just-ended-and-not-yet-submitted).
+  const showTicker = !isLocked && !notSubmittedPastDeadline && liveStatus !== "ended";
 
   return (
-    <div className={styles.panel}>
+    <div className={styles.panel} data-theme={theme}>
       <div className={styles.topRow}>
-        {showCompletedRollup ? (
-          <div className={styles.statusText}>
-            <span className={styles.statusTitleCompleted}>{shiftLabel} Shift Completed</span>
-            <div className={styles.submittedRow}>
-              <CircleCheckIcon className={styles.submittedIcon} />
-              <p className={styles.submittedText}>
-                Report Submitted by {submittedByName}
-                <br />
-                at {submittedAtLabel}
-              </p>
-            </div>
-          </div>
-        ) : isLocked ? (
-          <div className={styles.statusText}>
-            <span className={styles.statusTitleCompleted}>{shiftLabel} Shift Completed</span>
-            <span className={styles.shiftTimeRange}>{shiftTimeRange}</span>
-          </div>
-        ) : notSubmittedPastDeadline ? (
-          <div className={styles.statusText}>
-            <span className={styles.statusTitleCompleted}>{shiftLabel} Shift Completed</span>
-            <div className={styles.submittedRow}>
-              <CircleExclamationIcon className={styles.notSubmittedIcon} />
-              <p className={styles.notSubmittedText}>Report not submitted on time</p>
-            </div>
-          </div>
-        ) : (
+        {showTicker ? (
           <>
             <div className={styles.statusText}>
               <span className={notStarted ? styles.statusTitleNotStarted : styles.statusTitle}>
@@ -157,9 +138,19 @@ export function ShiftInProgressPanel({
               <span className={styles.shiftTimeRange}>{shiftTimeRange}</span>
             </div>
             <div className={styles.progressRingWrap}>
-              <DonutRing percent={notStarted ? 0 : progressPercent} color={notStarted ? "var(--color-neutral-400)" : "var(--color-primary-500)"} trackColor="var(--color-neutral-300)" size={56} strokeWidth={5} />
+              <DonutRing
+                percent={notStarted ? 0 : progressPercent}
+                color={notStarted ? "var(--color-neutral-400)" : "var(--color-primary-500)"}
+                trackColor={theme === "dark" ? "var(--color-neutral-700)" : "var(--color-neutral-300)"}
+                size={56}
+                strokeWidth={5}
+              />
             </div>
           </>
+        ) : (
+          <div className={styles.statusText}>
+            <span className={styles.statusTitleCompleted}>{shiftLabel} Shift Summary</span>
+          </div>
         )}
       </div>
 
@@ -207,7 +198,7 @@ export function ShiftInProgressPanel({
       {showCompleteAction && !showCompletedRollup && (
         <>
           {!canComplete && <p className={styles.hint}>Shift report can only be completed once a shift has ended and all sections have at least one note added</p>}
-          <Button variant="primary" theme="light" disabled={!canComplete} onClick={onCompleteClick} className={styles.completeButton}>
+          <Button variant="primary" theme={theme} disabled={!canComplete} onClick={onCompleteClick} className={styles.completeButton}>
             Complete Shift Report
           </Button>
         </>

@@ -12,7 +12,9 @@ import { ReportItsModal } from "./ReportItsModal";
 import { Button } from "../ui/Button";
 import { ButtonGroup } from "../ui/ButtonGroup";
 import { Modal } from "../ui/Modal";
+import { ThemeToggle } from "../ui/ThemeToggle";
 import { DonutRing, SegmentedDonutRing } from "../ui/Charts";
+import { useThemePreference, type ThemePreference } from "../../hooks/useThemePreference";
 import {
   BellIcon,
   BriefcaseIcon,
@@ -20,6 +22,8 @@ import {
   CaretLeftIcon,
   CaretRightIcon,
   ChevronLeftIcon,
+  CircleCheckIcon,
+  CircleExclamationIcon,
   ClipboardCheckIcon,
   ClipboardIcon,
   ClockIcon,
@@ -68,10 +72,22 @@ function formatNowTimestamp() {
 // stays reserved for the smaller date-picker pill, matching DailyReportPage's pickerDateFormatter split).
 const bigDateFormatter = new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric" });
 
-// "Sep 8, 2026" — the Side Panel's own "Report Submitted by ... at ... on {date}" line (Figma fileKey
-// 0UJDRcrFiXkn16yfc2MUEW, node 258:26708) — abbreviated month, no weekday, unlike the page's other
+// "Sep 8, 2026" — the header's own "Report Submitted by ... at ... on {date}" line (Figma fileKey
+// 0UJDRcrFiXkn16yfc2MUEW, node 312:44213) — abbreviated month, no weekday, unlike the page's other
 // date labels (bigDateFormatter/getFullDateLabel), since that full line is already long on its own.
 const abbreviatedDateFormatter = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" });
+
+// "9/8/26" — the same header's "Report Not Submitted | Due by 7:00am EST on {date}" line (same Figma
+// node), a full calendar day after the shift's own reportDate — reports are due the next morning, an
+// hour ahead of the Site Director's own 8:00am sign-off deadline (see DailyReportPage's signOffDueLabel)
+// so he has something to review by the time his own deadline hits.
+const reportDueDateFormatter = new Intl.DateTimeFormat("en-US", { month: "numeric", day: "numeric", year: "2-digit" });
+
+function addDays(date: Date, days: number): Date {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+}
 
 /** The Side Panel's own at-a-glance checklist (Figma fileKey 0UJDRcrFiXkn16yfc2MUEW, node 203:40371) — every note-taking section except Shift Notes, same icon/color pairing as ManagerAppShiftReportList's own SECTION_ICON so a section reads the same hue everywhere it appears. `iconBackground` is that same hue's own 15%-wash token (node 216:43750's left-column icon bubbles) — the Side Panel's own rows stay plain icon glyphs with no bubble. */
 const SIDE_PANEL_SECTIONS: { key: SectionKey; icon: ReactNode; iconColor: string; iconBackground: string }[] = [
@@ -117,6 +133,9 @@ export type EndOfShiftReportPageProps = {
 export function EndOfShiftReportPage({ contractBuildings }: EndOfShiftReportPageProps) {
   const searchParams = useSearchParams();
   const [managerQueueOpen, setManagerQueueOpen] = useState(false);
+  // Shared across the Shift Reports grid, Daily Report, and Shift Report pages (useThemePreference),
+  // persisted to localStorage so switching to dark on one page keeps it dark on the others.
+  const [theme, setTheme] = useThemePreference();
   // Whichever day's row was actually clicked on the Shift Reports list, or a shift row on the Daily
   // Report (both carry `?date=`, see dailyReportHref/DailyReportPage's own ShiftRow) — falls back to
   // today's real date for a direct visit with no date param (e.g. today's own live shift).
@@ -360,6 +379,12 @@ export function EndOfShiftReportPage({ contractBuildings }: EndOfShiftReportPage
   // Panel's rollup.
   const completedByManager = shift.completedBy ? getManager(shift, shift.completedBy) : undefined;
   const submittedAtLabel = shift.completedAt ? `${shift.completedAt} on ${abbreviatedDateFormatter.format(reportDate)}` : undefined;
+  // The shift's own window has closed but nobody's submitted yet, and it isn't one of the illustrative
+  // always-missed days either (notSubmittedPastDeadline) — today's shift, just ended, still within its
+  // own submission window. Shown in the header as a neutral "still due" reminder rather than either the
+  // green submitted line or the red past-deadline one.
+  const reportEndedNotSubmitted = hasEnded && !isLocked && !notSubmittedPastDeadline;
+  const reportDueLabel = reportDueDateFormatter.format(addDays(reportDate, 1));
   const completedStats: ShiftCompletedStats = {
     hours: {
       percent: shift.sections.hoursHeadcount.percentCaptured,
@@ -418,9 +443,9 @@ export function EndOfShiftReportPage({ contractBuildings }: EndOfShiftReportPage
   }
 
   return (
-    <div className={styles.page}>
+    <div className={styles.page} data-theme={theme}>
       <Nav
-        theme="light"
+        theme={theme}
         orgLabel="SBM"
         orgIcon={<BriefcaseIcon />}
         siteLabel={siteInfo.client}
@@ -443,6 +468,7 @@ export function EndOfShiftReportPage({ contractBuildings }: EndOfShiftReportPage
         avatarFallback="EH"
         avatarAlt="Emily Hoehenrieder"
         menuIcon={<MoreIcon />}
+        trailing={<ThemeToggle theme={theme} onChange={setTheme} />}
       />
 
       <main className={styles.main}>
@@ -473,7 +499,9 @@ export function EndOfShiftReportPage({ contractBuildings }: EndOfShiftReportPage
             // avatar/note to show yet either.
             <div className={styles.reportsPendingGroup}>
               <p className={styles.reportsPendingTitle}>Shift Reports Pending</p>
-              <p>Sign Off Due by 8:00am EST on {getFullDateLabel(new Date((now ?? reportDate).getFullYear(), (now ?? reportDate).getMonth(), (now ?? reportDate).getDate() + 1))}.</p>
+              <p className={styles.reportsPendingCaption}>
+                Sign Off Due by 8:00am EST on {getFullDateLabel(new Date((now ?? reportDate).getFullYear(), (now ?? reportDate).getMonth(), (now ?? reportDate).getDate() + 1))}.
+              </p>
             </div>
           ) : !isSignedOff && viewerRole !== "director" ? (
             // Every shift is in, but the Site Director hasn't reviewed the day yet, and only he can
@@ -520,7 +548,7 @@ export function EndOfShiftReportPage({ contractBuildings }: EndOfShiftReportPage
                   {isSignedOff && <span className={styles.directorNoteComplete}>Signed off at {directorNoteTimestamp}</span>}
                 </div>
                 {!isSignedOff && viewerRole === "director" && (
-                  <Button variant="primary" theme="light" onClick={confirmSignOff} disabled={!trimmedSignOffNote}>
+                  <Button variant="primary" theme={theme} onClick={confirmSignOff} disabled={!trimmedSignOffNote}>
                     Sign Off on Day
                   </Button>
                 )}
@@ -530,12 +558,34 @@ export function EndOfShiftReportPage({ contractBuildings }: EndOfShiftReportPage
         </div>
 
         <div className={styles.rollup}>
-          <Link href={dailyReportHref} className={styles.backLink} aria-label="Back to Daily Report">
-            <span className={styles.backLinkIcon}>
+          <div className={styles.headerInfo}>
+            <Link href={dailyReportHref} className={styles.backLinkIcon} aria-label="Back to Daily Report">
               <ChevronLeftIcon />
-            </span>
-            <h1 className={styles.backLinkText}>{SHIFT_LABELS[activeShiftKey]} Shift</h1>
-          </Link>
+            </Link>
+            <div className={styles.headerInfoText}>
+              <h1 className={styles.backLinkText}>{SHIFT_LABELS[activeShiftKey]} Shift</h1>
+              {/* Same three states as DailyReportPage's own ShiftRow status line — now the shift's own
+                  submitted/overdue/still-due status lives here (Figma fileKey 0UJDRcrFiXkn16yfc2MUEW,
+                  node 312:44213), not in the Side Panel, which now only shows the live ticking timer. */}
+              {isLocked && completedByManager && submittedAtLabel ? (
+                <div className={styles.reportStatusRow}>
+                  <CircleCheckIcon className={styles.reportStatusIconSuccess} />
+                  <p className={styles.reportStatusText}>
+                    Report Submitted by {completedByManager.name} at {submittedAtLabel}
+                  </p>
+                </div>
+              ) : notSubmittedPastDeadline ? (
+                <div className={styles.reportStatusRow}>
+                  <CircleExclamationIcon className={styles.reportStatusIconDanger} />
+                  <p className={[styles.reportStatusText, styles.reportStatusTextDanger].join(" ")}>Report not submitted on time</p>
+                </div>
+              ) : (
+                reportEndedNotSubmitted && (
+                  <p className={styles.reportStatusText}>Report Not Submitted | Due by 7:00am EST on {reportDueLabel}</p>
+                )
+              )}
+            </div>
+          </div>
 
           <ButtonGroup
             options={SHIFT_OPTIONS.map((option) => ({
@@ -549,13 +599,13 @@ export function EndOfShiftReportPage({ contractBuildings }: EndOfShiftReportPage
             }))}
             value={activeShiftKey}
             onChange={setActiveShiftKey}
-            theme="light"
+            theme={theme}
             variant="segmented"
-            trackColor="var(--color-neutral-200)"
+            trackColor={theme === "dark" ? "var(--color-neutral-900)" : "var(--color-neutral-200)"}
             trackElevated
-            thumbColor="var(--color-neutral-100)"
+            thumbColor={theme === "dark" ? "var(--color-neutral-800)" : "var(--color-neutral-100)"}
             thumbElevated
-            activeTextColor="var(--color-text-lt-blue)"
+            activeTextColor={theme === "dark" ? "var(--color-text-dt-blue)" : "var(--color-text-lt-blue)"}
             aria-label="Shift"
           />
         </div>
@@ -568,6 +618,7 @@ export function EndOfShiftReportPage({ contractBuildings }: EndOfShiftReportPage
               open={openSections.managers}
               onToggle={() => toggleSection("managers")}
               completed={isLocked}
+              theme={theme}
             >
               <div className={styles.managersTable}>
                 {shiftNotStarted ? (
@@ -587,6 +638,7 @@ export function EndOfShiftReportPage({ contractBuildings }: EndOfShiftReportPage
               onToggle={() => toggleSection("shiftNotes")}
               notes={notesConfigFor("shiftNotes")}
               completed={isLocked}
+              theme={theme}
             />
 
             <ShiftReportSectionCard
@@ -596,8 +648,9 @@ export function EndOfShiftReportPage({ contractBuildings }: EndOfShiftReportPage
               onToggle={() => toggleSection("hoursHeadcount")}
               notes={notesConfigFor("hoursHeadcount")}
               completed={isLocked}
+              theme={theme}
             >
-              <HoursHeadcountData shift={shift} onOpenHeadcount={() => setHeadcountModalOpen(true)} />
+              <HoursHeadcountData shift={shift} onOpenHeadcount={() => setHeadcountModalOpen(true)} theme={theme} />
             </ShiftReportSectionCard>
 
             <ShiftReportSectionCard
@@ -607,8 +660,9 @@ export function EndOfShiftReportPage({ contractBuildings }: EndOfShiftReportPage
               onToggle={() => toggleSection("areaCoverage")}
               notes={notesConfigFor("areaCoverage")}
               completed={isLocked}
+              theme={theme}
             >
-              <AreaCoverageData shift={shift} />
+              <AreaCoverageData shift={shift} theme={theme} />
             </ShiftReportSectionCard>
 
             <ShiftReportSectionCard
@@ -618,8 +672,9 @@ export function EndOfShiftReportPage({ contractBuildings }: EndOfShiftReportPage
               onToggle={() => toggleSection("serviceCoverage")}
               notes={notesConfigFor("serviceCoverage")}
               completed={isLocked}
+              theme={theme}
             >
-              <ServiceCoverageData shift={shift} />
+              <ServiceCoverageData shift={shift} theme={theme} />
             </ShiftReportSectionCard>
 
             <ShiftReportSectionCard
@@ -629,6 +684,7 @@ export function EndOfShiftReportPage({ contractBuildings }: EndOfShiftReportPage
               onToggle={() => toggleSection("quality")}
               notes={notesConfigFor("quality")}
               completed={isLocked}
+              theme={theme}
             >
               <QualityData shift={shift} onOpenReportIts={() => setReportItsModalOpen(true)} />
             </ShiftReportSectionCard>
@@ -650,26 +706,25 @@ export function EndOfShiftReportPage({ contractBuildings }: EndOfShiftReportPage
             }))}
             isLocked={isLocked}
             notSubmittedPastDeadline={notSubmittedPastDeadline}
-            submittedByName={completedByManager?.name}
-            submittedAtLabel={submittedAtLabel}
             completedStats={completedStats}
             canComplete={canComplete}
             showCompleteAction={viewerRole === "manager"}
             onCompleteClick={() => setConfirmOpen(true)}
             onSelectSection={handleSelectSection}
+            theme={theme}
           />
         </div>
       </main>
 
-      <ManagerQueuePanel open={managerQueueOpen} onClose={() => setManagerQueueOpen(false)} theme="light" />
+      <ManagerQueuePanel open={managerQueueOpen} onClose={() => setManagerQueueOpen(false)} theme={theme} />
 
-      <Modal open={confirmOpen} onClose={() => setConfirmOpen(false)} title="Complete this shift report?" theme="light">
+      <Modal open={confirmOpen} onClose={() => setConfirmOpen(false)} title="Complete this shift report?" theme={theme}>
         <p className={styles.confirmBody}>Every section locks once completed. Other managers can still view it, but no further notes can be added.</p>
         <div className={styles.confirmActions}>
-          <Button variant="primary" theme="light" onClick={handleConfirmComplete}>
+          <Button variant="primary" theme={theme} onClick={handleConfirmComplete}>
             Complete Shift Report
           </Button>
-          <Button variant="secondary" theme="light" onClick={() => setConfirmOpen(false)}>
+          <Button variant="secondary" theme={theme} onClick={() => setConfirmOpen(false)}>
             Cancel
           </Button>
         </div>
@@ -680,7 +735,7 @@ export function EndOfShiftReportPage({ contractBuildings }: EndOfShiftReportPage
         onClose={() => setHeadcountModalOpen(false)}
         shiftLabel={SHIFT_LABELS[activeShiftKey]}
         associates={mapShiftReport.associateAttendance}
-        theme="light"
+        theme={theme}
       />
 
       <ReportItsModal
@@ -688,7 +743,7 @@ export function EndOfShiftReportPage({ contractBuildings }: EndOfShiftReportPage
         onClose={() => setReportItsModalOpen(false)}
         shiftLabel={SHIFT_LABELS[activeShiftKey]}
         report={mapShiftReport}
-        theme="light"
+        theme={theme}
       />
     </div>
   );
@@ -720,10 +775,6 @@ function ManagerRow({ manager, now, isLocked }: { manager: ShiftManager; now: Da
         <span className={styles.managerTimeLabel}>Checked In</span>
       </div>
       <div className={styles.managerTimeCol}>
-        <span className={styles.managerTimeValue}>{checkedOut ? manager.totalTime : formatHMS(elapsed)}</span>
-        <span className={styles.managerTimeLabel}>Time on Shift</span>
-      </div>
-      <div className={styles.managerTimeCol}>
         {checkedOut ? (
           <>
             <span className={styles.managerTimeValue}>{manager.clockOut}</span>
@@ -732,6 +783,10 @@ function ManagerRow({ manager, now, isLocked }: { manager: ShiftManager; now: Da
         ) : (
           <span className={styles.managerCheckedInBadge}>Checked In</span>
         )}
+      </div>
+      <div className={styles.managerTimeCol}>
+        <span className={styles.managerTimeValue}>{checkedOut ? manager.totalTime : formatHMS(elapsed)}</span>
+        <span className={styles.managerTimeLabel}>Time on Shift</span>
       </div>
     </div>
   );
@@ -745,6 +800,7 @@ function RingStat({
   caption,
   segments,
   size = 70,
+  theme,
 }: {
   percent: number;
   color?: string;
@@ -753,14 +809,16 @@ function RingStat({
   caption: string;
   segments?: { value: number; color: string }[];
   size?: number;
+  theme: ThemePreference;
 }) {
+  const trackColor = theme === "dark" ? "var(--color-neutral-700)" : "var(--color-neutral-300)";
   return (
     <div className={styles.ringStat}>
       <div className={styles.ringWrap}>
         {segments ? (
-          <SegmentedDonutRing segments={segments} trackColor="var(--color-neutral-300)" size={size} strokeWidth={7} />
+          <SegmentedDonutRing segments={segments} trackColor={trackColor} size={size} strokeWidth={7} />
         ) : (
-          <DonutRing percent={percent} color={color ?? "var(--color-primary-500)"} trackColor="var(--color-neutral-300)" size={size} strokeWidth={7} />
+          <DonutRing percent={percent} color={color ?? "var(--color-primary-500)"} trackColor={trackColor} size={size} strokeWidth={7} />
         )}
         <span className={styles.ringPercentLabel}>{percent}%</span>
       </div>
@@ -775,12 +833,12 @@ function RingStat({
   );
 }
 
-function HoursHeadcountData({ shift, onOpenHeadcount }: { shift: ShiftReportState; onOpenHeadcount: () => void }) {
+function HoursHeadcountData({ shift, onOpenHeadcount, theme }: { shift: ShiftReportState; onOpenHeadcount: () => void; theme: ThemePreference }) {
   const d = shift.sections.hoursHeadcount;
   return (
     <div className={styles.dataGroup}>
       <div className={styles.flatDataGroup}>
-        <RingStat percent={d.percentCaptured} color="var(--color-warning-500)" label="Hours Captured" value={d.hoursCaptured} caption={`of ${d.totalTime} shift time`} size={80} />
+        <RingStat percent={d.percentCaptured} color="var(--color-warning-500)" label="Hours Captured" value={d.hoursCaptured} caption={`of ${d.totalTime} shift time`} size={80} theme={theme} />
         {/* Same named-associate drill-down as the Map's own Daily Report view's "Hours and Headcount"
             row (AssociateAttendanceModal via mapShiftReport) — the whole row is one big button, matching
             FullDayReportModalV2's own headcountCard pattern. */}
@@ -823,8 +881,9 @@ const AREA_BREAKDOWN_COLORS = {
   noFrequency: "var(--color-neutral-600)",
 } as const;
 
-function AreaCoverageData({ shift }: { shift: ShiftReportState }) {
+function AreaCoverageData({ shift, theme }: { shift: ShiftReportState; theme: ThemePreference }) {
   const d = shift.sections.areaCoverage;
+  const trackColor = theme === "dark" ? "var(--color-neutral-700)" : "var(--color-neutral-300)";
   const rows: { key: keyof typeof AREA_BREAKDOWN_COLORS; label: string; value: number }[] = [
     { key: "notServiced", label: "Not Serviced", value: d.breakdown.notServiced },
     { key: "underServiced", label: "Under-Serviced", value: d.breakdown.underServiced },
@@ -841,7 +900,7 @@ function AreaCoverageData({ shift }: { shift: ShiftReportState }) {
       <div className={styles.coverageRow}>
         <div className={styles.ringStat}>
           <div className={styles.ringWrap}>
-            <SegmentedDonutRing segments={rows.map((row) => ({ value: row.value, color: AREA_BREAKDOWN_COLORS[row.key] }))} trackColor="var(--color-neutral-300)" size={80} strokeWidth={7} />
+            <SegmentedDonutRing segments={rows.map((row) => ({ value: row.value, color: AREA_BREAKDOWN_COLORS[row.key] }))} trackColor={trackColor} size={80} strokeWidth={7} />
             <span className={styles.ringPercentLabel}>{d.percentServiced}%</span>
           </div>
           <div className={styles.ringStatText}>
@@ -878,7 +937,7 @@ function AreaCoverageData({ shift }: { shift: ShiftReportState }) {
   );
 }
 
-function ServiceCoverageData({ shift }: { shift: ShiftReportState }) {
+function ServiceCoverageData({ shift, theme }: { shift: ShiftReportState; theme: ThemePreference }) {
   const d = shift.sections.serviceCoverage;
   return (
     <div className={styles.dataGroup}>
@@ -890,6 +949,7 @@ function ServiceCoverageData({ shift }: { shift: ShiftReportState }) {
           value={d.servicesCompleted.toLocaleString()}
           caption={`of ${d.servicesExpected.toLocaleString()} expected`}
           size={80}
+          theme={theme}
         />
       </div>
     </div>

@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ChevronDownIcon, MoreHorizontalIcon } from "./icons";
-import { getTagColorLight, type ShiftNote } from "../../lib/managerShiftReportData";
+import { getTagColor, getTagColorLight, type ShiftNote } from "../../lib/managerShiftReportData";
+import type { ThemePreference } from "../../hooks/useThemePreference";
 import styles from "./ShiftReportSectionCard.module.css";
 
 export type ShiftReportNoteAuthor = { name: string; avatar: string };
@@ -30,6 +31,8 @@ export type ShiftReportSectionCardProps = {
   children?: ReactNode;
   /** The shift this card belongs to is already completed and submitted (Figma fileKey 0UJDRcrFiXkn16yfc2MUEW, node 258:25986 "Shift Report / Shift Complete / Report Submitted") — drops the card's own shadow, drops the in-progress "N notes added" checklist badge (nothing left to track), and gives each note its own grey accent-bordered card instead of the plain grey composer-adjacent look. */
   completed?: boolean;
+  /** Defaults to "light" (this page's own default) — the page passes its own live useThemePreference value through so this card's colors (and its note tags, via getTagColor/getTagColorLight) match. */
+  theme?: ThemePreference;
 };
 
 /**
@@ -43,14 +46,14 @@ export type ShiftReportSectionCardProps = {
  * page, not a pushed screen); Shift Managers has neither and just
  * supplies its own body as `children` with no `notes` prop.
  */
-export function ShiftReportSectionCard({ id, title, open, onToggle, notes, children, completed }: ShiftReportSectionCardProps) {
+export function ShiftReportSectionCard({ id, title, open, onToggle, notes, children, completed, theme = "light" }: ShiftReportSectionCardProps) {
   const noteCount = notes?.items.length ?? 0;
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
 
   const editingNote = notes?.items.find((n) => n.id === editingNoteId) ?? null;
 
   return (
-    <section id={id} className={styles.card} data-completed={completed || undefined}>
+    <section id={id} className={styles.card} data-theme={theme} data-completed={completed || undefined}>
       <button type="button" className={styles.header} aria-expanded={open} onClick={onToggle}>
         <span className={styles.titleRow}>
           <span className={styles.titleGroup}>
@@ -88,6 +91,7 @@ export function ShiftReportSectionCard({ id, title, open, onToggle, notes, child
                         author={notes.getAuthor(note.managerId)}
                         canManage={!notes.isLocked && note.managerId === notes.currentManagerId}
                         completed={completed}
+                        theme={theme}
                         onEdit={() => setEditingNoteId(note.id)}
                         onDelete={() => {
                           if (editingNoteId === note.id) setEditingNoteId(null);
@@ -129,6 +133,7 @@ function NoteCard({
   author,
   canManage,
   completed,
+  theme,
   onEdit,
   onDelete,
 }: {
@@ -136,6 +141,7 @@ function NoteCard({
   author?: ShiftReportNoteAuthor;
   canManage: boolean;
   completed?: boolean;
+  theme: ThemePreference;
   onEdit: () => void;
   onDelete: () => void;
 }) {
@@ -196,7 +202,7 @@ function NoteCard({
       {note.tags.length > 0 && (
         <div className={styles.noteTagRow}>
           {note.tags.map((tag) => {
-            const { wash, color } = getTagColorLight(tag);
+            const { wash, color } = theme === "dark" ? getTagColor(tag) : getTagColorLight(tag);
             return (
               <span key={tag} className={styles.noteTag} style={{ backgroundColor: wash, color }}>
                 {tag}

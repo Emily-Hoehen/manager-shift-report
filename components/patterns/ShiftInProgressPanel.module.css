@@ -1,13 +1,16 @@
 /* ============================================================
    ShiftInProgressPanel — desktop End of Shift Report's sidebar
    (Figma fileKey 0UJDRcrFiXkn16yfc2MUEW, node 203:40371 "Side
-   Panel"). Light theme only.
+   Panel"). Light by default; a `.panel[data-theme="dark"]` toggle
+   (useThemePreference) swaps every color-bearing rule to its
+   dark-theme pair — see the DARK THEME section at the end of this
+   file.
    ============================================================ */
 
 .panel {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
   width: 360px;
   flex-shrink: 0;
   padding: 24px;
@@ -59,41 +62,7 @@
   color: var(--color-text-lt-default);
 }
 
-/* ---------------- Completed rollup (Figma node 258:26708 "Side Panel", Day Shift Completed) ---------------- */
-
-.submittedRow {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-}
-
-.submittedIcon {
-  flex-shrink: 0;
-  font-size: 20px;
-  color: var(--color-text-lt-success);
-}
-
-.submittedText {
-  font-family: var(--type-body-md-family);
-  font-size: var(--type-body-md-size);
-  line-height: 22px;
-  color: var(--color-text-lt-default);
-}
-
-.notSubmittedIcon {
-  flex-shrink: 0;
-  font-size: 20px;
-  color: var(--color-text-lt-danger);
-}
-
-.notSubmittedText {
-  font-family: var(--type-body-md-family);
-  font-weight: var(--type-h4-weight);
-  font-size: var(--type-body-md-size);
-  line-height: 22px;
-  color: var(--color-text-lt-danger);
-}
+/* ---------------- Completed rollup (Figma node 258:26708 "Side Panel") ---------------- */
 
 .statBlock {
   display: flex;
@@ -351,6 +320,12 @@
   /* neutral-300 read as basically invisible against the panel's neutral-100 background at 1px —
      neutral-400 gives it enough contrast to actually register as a line. */
   background-color: var(--color-neutral-400);
+  /* .panel is a flex column capped at max-height with overflow-y:auto — once its real content is
+     taller than that cap, flexbox's default shrink behavior (flex-shrink: 1) crushes this 1px line
+     down to 0px computed height to make room for the larger blocks around it, same as every other
+     flex child would if not pinned. Without this, the divider silently disappears on any shift whose
+     full rollup is taller than the viewport, which is effectively always. */
+  flex-shrink: 0;
 }
 
 .hint {
@@ -362,4 +337,106 @@
 
 .completeButton {
   width: 100%;
+}
+
+/* ============================================================
+   DARK THEME — mirrors every color-bearing rule above, scoped
+   under the panel's own [data-theme="dark"] (set by
+   useThemePreference/ThemeToggle, threaded in as this component's
+   own `theme` prop).
+   ============================================================ */
+
+.panel[data-theme="dark"] {
+  background-color: var(--surface-dt-card);
+  box-shadow: var(--shadow-dt-card);
+}
+
+.panel[data-theme="dark"] .statusTitle,
+.panel[data-theme="dark"] .statusTitleCompleted {
+  color: var(--color-text-dt-default);
+}
+
+
+.panel[data-theme="dark"] .statBlock:hover,
+.panel[data-theme="dark"] .row:hover {
+  background-color: var(--color-neutral-700);
+}
+
+.panel[data-theme="dark"] .rowIconStatic {
+  color: var(--color-text-dt-blue);
+}
+
+.panel[data-theme="dark"] .statIconOrange {
+  color: var(--color-accent-dt-warning);
+}
+
+.panel[data-theme="dark"] .statIconPink {
+  color: var(--color-accent-dt-danger);
+}
+
+.panel[data-theme="dark"] .statValue,
+.panel[data-theme="dark"] .statLabel {
+  color: var(--color-text-dt-default);
+}
+
+.panel[data-theme="dark"] .statLabelMuted,
+.panel[data-theme="dark"] .statCaption {
+  color: var(--color-text-dt-grey);
+}
+
+.panel[data-theme="dark"] .statSubRow span:first-child {
+  color: var(--color-text-dt-grey);
+}
+
+.panel[data-theme="dark"] .statSubRow span:last-child {
+  color: var(--color-text-dt-default);
+}
+
+.panel[data-theme="dark"] .statusTitleNotStarted {
+  color: var(--color-text-dt-grey);
+}
+
+.panel[data-theme="dark"] .timer {
+  color: var(--color-text-dt-blue);
+}
+
+.panel[data-theme="dark"] .timerNotStarted {
+  color: var(--color-neutral-600);
+}
+
+.panel[data-theme="dark"] .timerNotStarted .timerColon {
+  color: var(--color-neutral-700);
+}
+
+.panel[data-theme="dark"] .shiftTimeRange {
+  color: var(--color-text-dt-grey);
+}
+
+.panel[data-theme="dark"] .rowTitle {
+  color: var(--color-text-dt-default);
+}
+
+.panel[data-theme="dark"] .rowCaption {
+  color: var(--color-text-dt-grey);
+}
+
+.panel[data-theme="dark"] .rowCheck {
+  color: var(--color-neutral-600);
+}
+
+.panel[data-theme="dark"] .rowCheckDone {
+  color: var(--color-text-dt-success);
+}
+
+.panel[data-theme="dark"] .avatarStackItem {
+  background-color: var(--color-neutral-700);
+  border-color: var(--surface-dt-card);
+}
+
+.panel[data-theme="dark"] .divider {
+  background-color: var(--color-neutral-700);
+}
+
+.panel[data-theme="dark"] .hint {
+  color: var(--color-text-dt-grey);
 }

@@ -1,8 +1,10 @@
 /* ============================================================
    ShiftReportSectionCard — one collapsible card in the desktop
    End of Shift Report (Figma fileKey 0UJDRcrFiXkn16yfc2MUEW,
-   node 174:34927 "Details"). Light theme only — this page has no
-   dark-theme pairing in Figma.
+   node 174:34927 "Details"). Light by default; a
+   `.card[data-theme="dark"]` toggle (useThemePreference) swaps
+   every color-bearing rule to its dark-theme pair — see the DARK
+   THEME section at the end of this file.
    ============================================================ */
 
 .card {
@@ -383,4 +385,118 @@
 
 .cancelEditButton:hover {
   color: var(--color-text-lt-default);
+}
+
+/* ============================================================
+   DARK THEME — mirrors every color-bearing rule above, scoped
+   under the card's own [data-theme="dark"] (set by
+   useThemePreference/ThemeToggle, threaded in as this component's
+   own `theme` prop).
+   ============================================================ */
+
+.card[data-theme="dark"] {
+  background-color: var(--surface-dt-card);
+  box-shadow: var(--shadow-dt-card);
+}
+
+.card[data-theme="dark"] .title {
+  color: var(--color-text-dt-default);
+}
+
+.card[data-theme="dark"] .chevron {
+  color: var(--color-text-dt-blue);
+}
+
+.card[data-theme="dark"] .notesDivider {
+  background-color: var(--color-neutral-700);
+}
+
+.card[data-theme="dark"] .notesZeroState {
+  color: var(--color-text-dt-grey);
+}
+
+.card[data-theme="dark"] .noteCard,
+.card[data-theme="dark"] .noteCard[data-completed="true"] {
+  background-color: var(--surface-dt-card-sunken);
+}
+
+.card[data-theme="dark"] .noteCard[data-completed="true"] {
+  border-left-color: var(--color-neutral-700);
+}
+
+.card[data-theme="dark"] .noteName {
+  color: var(--color-text-dt-default);
+}
+
+.card[data-theme="dark"] .noteTimestamp {
+  color: var(--color-text-dt-grey);
+}
+
+.card[data-theme="dark"] .noteMenuButton {
+  color: var(--color-text-dt-grey);
+}
+
+.card[data-theme="dark"] .noteMenuButton:hover {
+  background-color: var(--color-neutral-700);
+}
+
+.card[data-theme="dark"] .noteMenu {
+  background-color: var(--surface-dt-card);
+  box-shadow: var(--shadow-dt-popup-menu);
+}
+
+.card[data-theme="dark"] .noteMenuItem {
+  color: var(--color-text-dt-default);
+}
+
+.card[data-theme="dark"] .noteMenuItem:hover {
+  background-color: var(--color-neutral-700);
+}
+
+.card[data-theme="dark"] .noteMenuItemDanger {
+  color: var(--color-text-dt-danger);
+}
+
+.card[data-theme="dark"] .noteText {
+  color: var(--color-text-dt-default);
+}
+
+.card[data-theme="dark"] .composer {
+  background-color: var(--surface-dt-card-sunken);
+}
+
+.card[data-theme="dark"] .textarea {
+  border-color: var(--color-neutral-700);
+  background-color: var(--surface-dt-card);
+  color: var(--color-text-dt-default);
+}
+
+.card[data-theme="dark"] .textarea::placeholder {
+  color: var(--color-text-dt-grey);
+}
+
+.card[data-theme="dark"] .tagPickerLabel {
+  color: var(--color-text-dt-grey);
+}
+
+.card[data-theme="dark"] .tagOption {
+  border-color: var(--color-neutral-700);
+  color: var(--color-text-dt-grey);
+}
+
+.card[data-theme="dark"] .tagOption:hover {
+  border-color: var(--color-neutral-600);
+}
+
+.card[data-theme="dark"] .tagOptionSelected {
+  border-color: var(--color-text-dt-blue);
+  color: var(--color-text-dt-blue);
+}
+
+.card[data-theme="dark"] .cancelEditButton {
+  color: var(--color-text-dt-grey);
+}
+
+.card[data-theme="dark"] .cancelEditButton:hover {
+  color: var(--color-text-dt-default);
 }

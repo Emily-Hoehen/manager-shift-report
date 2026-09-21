@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Nav } from "./Nav";
 import { ManagerQueuePanel } from "./ManagerQueuePanel";
+import { ThemeToggle } from "../ui/ThemeToggle";
+import { useThemePreference } from "../../hooks/useThemePreference";
 import {
   BellIcon,
   BriefcaseIcon,
@@ -51,14 +53,14 @@ function addDays(date: Date, days: number): Date {
   return next;
 }
 
-type ShiftRowTone = "completed" | "inProgress" | "notStarted" | "overdue" | "notSubmitted";
+type ShiftRowTone = "completed" | "inProgress" | "notStarted" | "notSubmitted";
 
-/** Today's own per-shift tone (see buildTodayRow in shiftReportListData, which this mirrors) — only meaningful while isToday is true; a past/illustrative day's shifts are always "completed". */
+/** Today's own per-shift tone (see buildTodayRow in shiftReportListData, which this mirrors) — only meaningful while isToday is true; a past/illustrative day's shifts are always "completed". A shift whose own window has already ended today but hasn't been submitted yet reads the same "notSubmitted" way a past illustrative missed day does (isPastMissedShift) — same stats-plus-red-subtitle row, same unlocked Shift Report page underneath. */
 function getTodayShiftTone(shiftKey: ShiftKey, now: Date | null): ShiftRowTone {
   if (!now) return "notStarted";
   const liveStatus = getShiftLiveStatus(shiftKey, now);
   if (liveStatus !== "ended") return liveStatus === "inProgress" ? "inProgress" : "notStarted";
-  return INITIAL_SHIFT_REPORTS[shiftKey].completedBy ? "completed" : "overdue";
+  return INITIAL_SHIFT_REPORTS[shiftKey].completedBy ? "completed" : "notSubmitted";
 }
 
 /** Same three Quality categories FullDayReportModalV2 shows in the Map — kept identical here so the two surfaces never disagree. */
@@ -91,6 +93,9 @@ export type DailyReportPageProps = {
 export function DailyReportPage({ contractBuildings }: DailyReportPageProps) {
   const searchParams = useSearchParams();
   const [managerQueueOpen, setManagerQueueOpen] = useState(false);
+  // Shared across the Shift Reports grid, Daily Report, and Shift Report pages (useThemePreference),
+  // persisted to localStorage so switching to dark on one page keeps it dark on the others.
+  const [theme, setTheme] = useThemePreference();
 
   // Who's looking at this page (see ViewerRole) — only the Site Director can sign off a day here; a
   // Manager on Shift or Other User both just get a read-only view of the same content. Set by the
@@ -191,9 +196,9 @@ export function DailyReportPage({ contractBuildings }: DailyReportPageProps) {
   const signOffParams = signOff ? `&signedOff=1&at=${encodeURIComponent(signOff.timestamp)}` : "";
 
   return (
-    <div className={styles.page}>
+    <div className={styles.page} data-theme={theme}>
       <Nav
-        theme="light"
+        theme={theme}
         orgLabel="SBM"
         orgIcon={<BriefcaseIcon />}
         siteLabel={siteInfo.client}
@@ -216,6 +221,7 @@ export function DailyReportPage({ contractBuildings }: DailyReportPageProps) {
         avatarFallback="EH"
         avatarAlt="Emily Hoehenrieder"
         menuIcon={<MoreIcon />}
+        trailing={<ThemeToggle theme={theme} onChange={setTheme} />}
       />
 
       <main className={styles.main}>
@@ -249,7 +255,7 @@ export function DailyReportPage({ contractBuildings }: DailyReportPageProps) {
           <div className={styles.dailySummaryCard}>
             <div className={styles.reportsPendingGroup}>
               <p className={styles.reportsPendingTitle}>Shift Reports Pending</p>
-              <p>Sign Off Due by 8:00am EST on {signOffDueLabel}.</p>
+              <p className={styles.reportsPendingCaption}>Sign Off Due by 8:00am EST on {signOffDueLabel}.</p>
             </div>
           </div>
         ) : !signOff && viewerRole !== "director" ? (
@@ -303,7 +309,7 @@ export function DailyReportPage({ contractBuildings }: DailyReportPageProps) {
                 {signOff && <span className={styles.signOffComplete}>Signed off at {signOff.timestamp}</span>}
               </div>
               {!signOff && viewerRole === "director" && (
-                <Button variant="primary" theme="light" className={styles.signOffButtonFit} onClick={confirmSignOff} disabled={!trimmedSignOffNote}>
+                <Button variant="primary" theme={theme} className={styles.signOffButtonFit} onClick={confirmSignOff} disabled={!trimmedSignOffNote}>
                   Sign Off on Day
                 </Button>
               )}
@@ -452,7 +458,7 @@ export function DailyReportPage({ contractBuildings }: DailyReportPageProps) {
         </div>
       </main>
 
-      <ManagerQueuePanel open={managerQueueOpen} onClose={() => setManagerQueueOpen(false)} theme="light" />
+      <ManagerQueuePanel open={managerQueueOpen} onClose={() => setManagerQueueOpen(false)} theme={theme} />
     </div>
   );
 }
@@ -465,10 +471,11 @@ export function DailyReportPage({ contractBuildings }: DailyReportPageProps) {
  * that shift's own full page (End of Shift Report, `?shift=X`) instead of expanding in place — the
  * "left and right info changes" drill-down the shift's own page (managers, notes, hours, area/service
  * coverage, quality on the left; a matching side panel on the right) already provides, rather than
- * duplicating all of that content again here. `tone` (see ShiftRowTone) picks which of the five states
- * (Figma node 247:21796 in-progress/not-started, 265:32034 overdue) this row renders as; "completed"
- * and "notSubmitted" both show the three metric stats (the shift ran either way, only the report itself
- * is missing for "notSubmitted" — see isPastMissedShift), just with a red "Report Not Submitted" line
+ * duplicating all of that content again here. `tone` (see ShiftRowTone) picks which of the four states
+ * (Figma node 247:21796 in-progress/not-started) this row renders as; "completed" and "notSubmitted"
+ * both show the three metric stats (the shift ran either way, only the report itself is missing for
+ * "notSubmitted" — true for today's own shift once its window ends without a submission, or for one of
+ * the illustrative past missed days, see isPastMissedShift), just with a red "Report Not Submitted" line
  * in place of the usual "Reported at ... by ..." meta line.
  */
 function ShiftRow({ shiftKey, report, tone, href }: { shiftKey: ShiftKey; report: ShiftReport; tone: ShiftRowTone; href: string }) {
@@ -506,12 +513,6 @@ function ShiftRow({ shiftKey, report, tone, href }: { shiftKey: ShiftKey; report
           <span className={styles.shiftCardStatusCaption}>
             {managersOnShift} manager{managersOnShift === 1 ? "" : "s"} checked in
           </span>
-        </div>
-      )}
-
-      {tone === "overdue" && (
-        <div className={styles.shiftCardStatus}>
-          <span className={styles.shiftCardStatusOverdue}>{label} Report Overdue</span>
         </div>
       )}
 

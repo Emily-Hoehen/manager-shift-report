@@ -6,6 +6,8 @@ import { useSearchParams } from "next/navigation";
 import { Nav } from "./Nav";
 import { ManagerQueuePanel } from "./ManagerQueuePanel";
 import { ButtonGroup } from "../ui/ButtonGroup";
+import { ThemeToggle } from "../ui/ThemeToggle";
+import { useThemePreference } from "../../hooks/useThemePreference";
 import {
   ArrowRightIcon,
   BellIcon,
@@ -86,6 +88,10 @@ export function EndOfShiftReportListPage() {
   // Default reading order is "current day first" (sortDaysCurrentFirst) — flipping this shows the
   // classic oldest-first calendar order instead.
   const [oldestFirst, setOldestFirst] = useState(false);
+  // Shared across the Shift Reports grid, Daily Report, and Shift Report pages (useThemePreference),
+  // persisted to localStorage so switching to dark here keeps it dark after drilling into a day's
+  // report and back.
+  const [theme, setTheme] = useThemePreference();
   // Starts null so the server-rendered markup and the client's first render agree exactly (see
   // EndOfShiftReportPage's own note) — today's row depends on the real wall clock, which the server
   // can't know in advance. Filled in immediately after mount, client-side only.
@@ -109,9 +115,9 @@ export function EndOfShiftReportListPage() {
   }
 
   return (
-    <div className={styles.page}>
+    <div className={styles.page} data-theme={theme}>
       <Nav
-        theme="light"
+        theme={theme}
         orgLabel="SBM"
         orgIcon={<BriefcaseIcon />}
         siteLabel={siteInfo.client}
@@ -134,6 +140,7 @@ export function EndOfShiftReportListPage() {
         avatarFallback="EH"
         avatarAlt="Emily Hoehenrieder"
         menuIcon={<MoreIcon />}
+        trailing={<ThemeToggle theme={theme} onChange={setTheme} />}
       />
 
       <main className={styles.main}>
@@ -143,7 +150,7 @@ export function EndOfShiftReportListPage() {
             theirs right now; everyone else gets the exact same pages read-only. */}
         <div className={styles.viewAsRow}>
           <span className={styles.viewAsLabel}>Viewing as</span>
-          <ButtonGroup options={VIEWER_ROLE_OPTIONS} value={viewerRole} onChange={setViewerRole} variant="segmented" theme="light" aria-label="View as" />
+          <ButtonGroup options={VIEWER_ROLE_OPTIONS} value={viewerRole} onChange={setViewerRole} variant="segmented" theme={theme} aria-label="View as" />
         </div>
 
         <div className={styles.rollup}>
@@ -192,7 +199,7 @@ export function EndOfShiftReportListPage() {
         </div>
       </main>
 
-      <ManagerQueuePanel open={managerQueueOpen} onClose={() => setManagerQueueOpen(false)} theme="light" />
+      <ManagerQueuePanel open={managerQueueOpen} onClose={() => setManagerQueueOpen(false)} theme={theme} />
     </div>
   );
 }

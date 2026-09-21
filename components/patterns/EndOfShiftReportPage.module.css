@@ -145,8 +145,10 @@
 }
 
 .directorNoteComplete {
-  font-family: var(--type-body-sm-family);
-  font-size: var(--type-body-lg-size);
+  font-family: var(--type-body-md-family);
+  font-size: var(--type-body-md-size);
+  font-weight: var(--type-body-md-weight);
+  line-height: var(--type-body-md-leading);
   color: var(--color-text-lt-success);
 }
 
@@ -205,6 +207,13 @@
   color: var(--color-text-lt-grey);
 }
 
+.reportsPendingCaption {
+  font-family: var(--type-body-md-family);
+  font-size: var(--type-body-md-size);
+  font-weight: var(--type-body-md-weight);
+  line-height: var(--type-body-md-leading);
+}
+
 /* "Sign off overdue for the daily report" — same non-director read-only state as DailyReportPage's own
    (Figma fileKey 0UJDRcrFiXkn16yfc2MUEW, node 326:46528). */
 .signOffOverdueGroup {
@@ -229,16 +238,17 @@
   color: var(--color-text-lt-grey);
 }
 
-/* ---------------- Back button (below the date, "< Day Shift") ---------------- */
+/* ---------------- Header info: back button + title + status (Figma fileKey 0UJDRcrFiXkn16yfc2MUEW, node 312:44213 "Header Info") ---------------- */
 
-.backLink {
+.headerInfo {
   display: flex;
   align-items: center;
-  gap: 12px;
-  text-decoration: none;
+  gap: 24px;
+  flex: 1;
+  min-width: 0;
 }
 
-/* Round white button with a blue chevron (Figma fileKey 0UJDRcrFiXkn16yfc2MUEW, node 265:30215). */
+/* Round white button with a blue chevron (Figma node 265:30215). */
 .backLinkIcon {
   display: flex;
   align-items: center;
@@ -251,10 +261,20 @@
   box-shadow: var(--shadow-lt-card);
   color: var(--color-text-lt-blue);
   font-size: 14px;
+  text-decoration: none;
 }
 
-.backLink:hover .backLinkIcon {
+.backLinkIcon:hover {
   background-color: var(--color-neutral-200);
+}
+
+.headerInfoText {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
 }
 
 .backLinkText {
@@ -262,6 +282,36 @@
   font-weight: var(--type-h1-weight);
   font-size: var(--type-h1-size);
   color: var(--color-text-lt-default);
+}
+
+/* The shift's own submitted/overdue/still-due status, moved here from the Side Panel. */
+.reportStatusRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.reportStatusIconSuccess {
+  flex-shrink: 0;
+  font-size: 16px;
+  color: var(--color-text-lt-success);
+}
+
+.reportStatusIconDanger {
+  flex-shrink: 0;
+  font-size: 16px;
+  color: var(--color-text-lt-danger);
+}
+
+.reportStatusText {
+  font-family: var(--type-body-md-family);
+  font-size: var(--type-body-md-size);
+  line-height: var(--type-body-md-leading);
+  color: var(--color-text-lt-default);
+}
+
+.reportStatusTextDanger {
+  color: var(--color-text-lt-danger);
 }
 
 .datePicker {
@@ -819,6 +869,210 @@
   font-family: var(--type-body-md-family);
   font-size: var(--type-body-md-size);
   color: var(--color-text-lt-default);
+}
+
+/* ============================================================
+   DARK THEME — mirrors every color-bearing rule this page actually
+   uses (see EndOfShiftReportPage.tsx), scoped under the page's own
+   [data-theme="dark"] (set by useThemePreference/ThemeToggle).
+   ============================================================ */
+
+.page[data-theme="dark"] {
+  background-color: var(--surface-dt-page);
+  color: var(--color-text-dt-default);
+}
+
+.page[data-theme="dark"] .breadcrumbMuted {
+  color: var(--color-text-dt-grey);
+}
+
+.page[data-theme="dark"] .breadcrumbMuted:hover {
+  color: var(--color-text-dt-blue);
+}
+
+.page[data-theme="dark"] .breadcrumbCurrent {
+  color: var(--color-text-dt-default);
+}
+
+.page[data-theme="dark"] .bigDate {
+  color: var(--color-text-dt-default);
+}
+
+.page[data-theme="dark"] .directorNoteCard {
+  border-left-color: var(--color-neutral-700);
+  background-color: var(--surface-dt-card);
+  box-shadow: var(--shadow-dt-card);
+}
+
+.page[data-theme="dark"] .directorNoteText {
+  color: var(--color-text-dt-default);
+}
+
+.page[data-theme="dark"] .directorNoteName {
+  color: var(--color-text-dt-default);
+}
+
+.page[data-theme="dark"] .directorNotePosition {
+  color: var(--color-text-dt-grey);
+}
+
+.page[data-theme="dark"] .directorNoteComplete {
+  color: var(--color-text-dt-success);
+}
+
+.page[data-theme="dark"] .signOffHeading {
+  color: var(--color-text-dt-default);
+}
+
+.page[data-theme="dark"] .signOffNoteInput {
+  border-color: var(--color-neutral-700);
+  background-color: var(--surface-dt-card-sunken);
+  color: var(--color-text-dt-default);
+}
+
+.page[data-theme="dark"] .signOffNoteInput::placeholder {
+  color: var(--color-text-dt-grey);
+}
+
+.page[data-theme="dark"] .reportsPendingGroup {
+  color: var(--color-text-dt-default);
+}
+
+.page[data-theme="dark"] .reportsPendingTitle,
+.page[data-theme="dark"] .signOffOverdueTitle,
+.page[data-theme="dark"] .signOffOverdueCaption {
+  color: var(--color-text-dt-grey);
+}
+
+.page[data-theme="dark"] .backLinkIcon {
+  background-color: var(--surface-dt-card);
+  box-shadow: var(--shadow-dt-card);
+  color: var(--color-text-dt-blue);
+}
+
+.page[data-theme="dark"] .backLinkIcon:hover {
+  background-color: var(--color-neutral-700);
+}
+
+.page[data-theme="dark"] .backLinkText {
+  color: var(--color-text-dt-default);
+}
+
+.page[data-theme="dark"] .reportStatusIconSuccess {
+  color: var(--color-text-dt-success);
+}
+
+.page[data-theme="dark"] .reportStatusIconDanger {
+  color: var(--color-text-dt-danger);
+}
+
+.page[data-theme="dark"] .reportStatusText {
+  color: var(--color-text-dt-default);
+}
+
+.page[data-theme="dark"] .reportStatusTextDanger {
+  color: var(--color-text-dt-danger);
+}
+
+.page[data-theme="dark"] .datePicker {
+  background-color: var(--surface-dt-card);
+}
+
+.page[data-theme="dark"] .dateCaret,
+.page[data-theme="dark"] .dateLabel {
+  color: var(--color-text-dt-blue);
+}
+
+.page[data-theme="dark"] .managersEmptyState {
+  color: var(--color-text-dt-grey);
+}
+
+.page[data-theme="dark"] .managerAvatar {
+  background-color: var(--color-neutral-700);
+}
+
+.page[data-theme="dark"] .managerName {
+  color: var(--color-text-dt-default);
+}
+
+.page[data-theme="dark"] .managerRole {
+  color: var(--color-text-dt-grey);
+}
+
+.page[data-theme="dark"] .managerDivider {
+  background-color: var(--color-neutral-700);
+}
+
+.page[data-theme="dark"] .managerTimeValue {
+  color: var(--color-text-dt-default);
+}
+
+.page[data-theme="dark"] .managerTimeLabel {
+  color: var(--color-text-dt-grey);
+}
+
+.page[data-theme="dark"] .managerCheckedInBadge {
+  color: var(--color-text-dt-warning);
+}
+
+.page[data-theme="dark"] .ringPercentLabel,
+.page[data-theme="dark"] .ringStatLabel,
+.page[data-theme="dark"] .ringStatValue {
+  color: var(--color-text-dt-default);
+}
+
+.page[data-theme="dark"] .ringStatCaption {
+  color: var(--color-text-dt-grey);
+}
+
+.page[data-theme="dark"] .headcountRowButton:hover,
+.page[data-theme="dark"] .qualityColumnButton:hover {
+  background-color: var(--color-neutral-700);
+}
+
+.page[data-theme="dark"] .headcountDivider {
+  background-color: var(--color-neutral-700);
+}
+
+.page[data-theme="dark"] .headcountItemLabel,
+.page[data-theme="dark"] .headcountItemValue {
+  color: var(--color-text-dt-default);
+}
+
+.page[data-theme="dark"] .headcountItemLabelMuted,
+.page[data-theme="dark"] .headcountItemValueMuted {
+  color: var(--color-text-dt-grey);
+}
+
+.page[data-theme="dark"] .coverageLegendLabel,
+.page[data-theme="dark"] .coverageLegendValue {
+  color: var(--color-text-dt-default);
+}
+
+.page[data-theme="dark"] .coverageLegendPercent {
+  color: var(--color-text-dt-grey);
+}
+
+.page[data-theme="dark"] .qualityGroupLabel {
+  color: var(--color-text-dt-grey);
+}
+
+.page[data-theme="dark"] .scoreChipLabel {
+  color: var(--color-text-dt-default);
+}
+
+.page[data-theme="dark"] .scoreChipCaption {
+  color: var(--color-text-dt-grey);
+}
+
+.page[data-theme="dark"] .reportItLabel,
+.page[data-theme="dark"] .reportItValue,
+.page[data-theme="dark"] .safetyEmptyState {
+  color: var(--color-text-dt-default);
+}
+
+.page[data-theme="dark"] .confirmBody {
+  color: var(--color-text-dt-grey);
 }
 
 /* ---------------- Responsive ---------------- */
