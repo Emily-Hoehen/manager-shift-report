@@ -4,7 +4,7 @@ import { DailyReportPage } from "../../../components/patterns/DailyReportPage";
 import { loadContractBuildings } from "../../../lib/sowContractLoader";
 
 export const metadata: Metadata = {
-  title: "Daily Report",
+  title: "Manager Shift Report",
 };
 
 export default async function ManageShiftDailyReportPage() {
