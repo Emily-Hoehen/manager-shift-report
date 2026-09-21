@@ -29,7 +29,7 @@ import { formatMinutesToHoursLabel, parseHoursLabelToMinutes } from "./FullShift
 import { buildDailyReport, type QualityScore } from "../../lib/mapPageData";
 import { buildShiftReport, type ShiftReport } from "../../lib/mapShiftReportData";
 import { computeDailyAreaCoverageBreakdown } from "../../lib/mapAreaServiceData";
-import { formatDateParam, formatSignOffNowLabel, parseDateParam, SHIFT_ORDER } from "../../lib/shiftReportListData";
+import { formatDateParam, formatSignOffNowLabel, isPastMissedShift, parseDateParam, SHIFT_ORDER } from "../../lib/shiftReportListData";
 import {
   INITIAL_SHIFT_REPORTS,
   SHIFT_LABELS,
@@ -51,7 +51,7 @@ function addDays(date: Date, days: number): Date {
   return next;
 }
 
-type ShiftRowTone = "completed" | "inProgress" | "notStarted" | "overdue";
+type ShiftRowTone = "completed" | "inProgress" | "notStarted" | "overdue" | "notSubmitted";
 
 /** Today's own per-shift tone (see buildTodayRow in shiftReportListData, which this mirrors) — only meaningful while isToday is true; a past/illustrative day's shifts are always "completed". */
 function getTodayShiftTone(shiftKey: ShiftKey, now: Date | null): ShiftRowTone {
@@ -173,7 +173,10 @@ export function DailyReportPage({ contractBuildings }: DailyReportPageProps) {
   const reportItsAcceptanceRate = reportItsSubmitted > 0 ? Math.round((reportItsAccepted / reportItsSubmitted) * 100) : 0;
 
   const shiftTones: Record<ShiftKey, ShiftRowTone> = Object.fromEntries(
-    SHIFT_ORDER.map((key) => [key, isToday ? getTodayShiftTone(key, now) : "completed"])
+    SHIFT_ORDER.map((key) => [
+      key,
+      isToday ? getTodayShiftTone(key, now) : isPastMissedShift(key, viewDate) ? "notSubmitted" : "completed",
+    ])
   ) as Record<ShiftKey, ShiftRowTone>;
   const dayInProgress = isToday && SHIFT_ORDER.some((key) => shiftTones[key] === "inProgress" || shiftTones[key] === "notStarted");
   const signOffDueLabel = pickerDateFormatter.format(addDays(now ?? ANCHOR_DATE, 1));
@@ -247,6 +250,17 @@ export function DailyReportPage({ contractBuildings }: DailyReportPageProps) {
             <div className={styles.reportsPendingGroup}>
               <p className={styles.reportsPendingTitle}>Shift Reports Pending</p>
               <p>Sign Off Due by 8:00am EST on {signOffDueLabel}.</p>
+            </div>
+          </div>
+        ) : !signOff && viewerRole !== "director" ? (
+          // Every shift is in, but the Site Director hasn't reviewed the day yet, and only he can (Figma
+          // fileKey 0UJDRcrFiXkn16yfc2MUEW, node 326:46528) — a Manager on Shift or Other User gets this
+          // plain "still waiting on him" message instead of the sign-off input/avatar row, which are
+          // only ever actionable by the Site Director himself.
+          <div className={styles.dailySummaryCard}>
+            <div className={styles.signOffOverdueGroup}>
+              <p className={styles.signOffOverdueTitle}>Sign off overdue for the daily report</p>
+              <p className={styles.signOffOverdueCaption}>Awaiting sign off from site director</p>
             </div>
           </div>
         ) : (
@@ -451,10 +465,11 @@ export function DailyReportPage({ contractBuildings }: DailyReportPageProps) {
  * that shift's own full page (End of Shift Report, `?shift=X`) instead of expanding in place — the
  * "left and right info changes" drill-down the shift's own page (managers, notes, hours, area/service
  * coverage, quality on the left; a matching side panel on the right) already provides, rather than
- * duplicating all of that content again here. `tone` (see ShiftRowTone) picks which of the four states
- * (Figma node 247:21796 in-progress/not-started, 265:32034 overdue) this row renders as; only
- * "completed" shows the three metric stats, since that's the only tone with a real finished report
- * behind it in this prototype's data (allShiftReports/mapPageData).
+ * duplicating all of that content again here. `tone` (see ShiftRowTone) picks which of the five states
+ * (Figma node 247:21796 in-progress/not-started, 265:32034 overdue) this row renders as; "completed"
+ * and "notSubmitted" both show the three metric stats (the shift ran either way, only the report itself
+ * is missing for "notSubmitted" — see isPastMissedShift), just with a red "Report Not Submitted" line
+ * in place of the usual "Reported at ... by ..." meta line.
  */
 function ShiftRow({ shiftKey, report, tone, href }: { shiftKey: ShiftKey; report: ShiftReport; tone: ShiftRowTone; href: string }) {
   const label = SHIFT_LABELS[shiftKey];
@@ -468,9 +483,10 @@ function ShiftRow({ shiftKey, report, tone, href }: { shiftKey: ShiftKey; report
       <div className={styles.shiftCardHeaderText}>
         <span className={styles.shiftCardTitle}>{label} Shift</span>
         {completedMetaLabel && <span className={styles.shiftCardMeta}>{completedMetaLabel}</span>}
+        {tone === "notSubmitted" && <span className={styles.shiftCardMetaDanger}>Report Not Submitted</span>}
       </div>
 
-      {tone === "completed" && (
+      {(tone === "completed" || tone === "notSubmitted") && (
         <div className={styles.shiftCardStatsExpanded}>
           <ShiftHeaderStat icon={<ClockIcon />} iconClassName={styles.shiftHeaderStatIconYellow} title={`${report.hoursPercent}% Hours Captured`}>
             {report.hoursCapturedLabel} of {report.hoursPaidLabel}

@@ -28,9 +28,7 @@ import {
   formatDateParam,
   getDayInProgressLabel,
   getDayRowDateLabel,
-  getLateShiftNote,
   getMonthLabel,
-  getShiftReportRowV2Display,
   getSignOffStatusDisplay,
   sortDaysCurrentFirst,
   type ShiftReportDayRow,
@@ -60,13 +58,6 @@ function dailyReportHref(day: ShiftReportDayRow, viewerRole: ViewerRole): string
   return `/manage-shift/daily-report?${params.toString()}`;
 }
 
-type GridVersion = "v1" | "v2";
-
-const GRID_VERSION_OPTIONS = [
-  { id: "v1" as GridVersion, label: "V1" },
-  { id: "v2" as GridVersion, label: "V2" },
-];
-
 const VIEWER_ROLE_OPTIONS = (Object.keys(VIEWER_ROLE_LABELS) as ViewerRole[]).map((role) => ({ id: role, label: VIEWER_ROLE_LABELS[role] }));
 
 /**
@@ -87,7 +78,6 @@ const VIEWER_ROLE_OPTIONS = (Object.keys(VIEWER_ROLE_LABELS) as ViewerRole[]).ma
 export function EndOfShiftReportListPage() {
   const searchParams = useSearchParams();
   const [managerQueueOpen, setManagerQueueOpen] = useState(false);
-  const [gridVersion, setGridVersion] = useState<GridVersion>("v1");
   const [monthOffset, setMonthOffset] = useState(0);
   // Who's browsing the list right now (see ViewerRole) — starts from `?as=` so a link back here (the
   // Daily Report/End of Shift Report breadcrumbs) keeps whatever persona was already selected;
@@ -160,15 +150,6 @@ export function EndOfShiftReportListPage() {
           <h1 className={styles.rollupTitle}>Shift Reports</h1>
 
           <div className={styles.rollupControls}>
-            <ButtonGroup
-              options={GRID_VERSION_OPTIONS}
-              value={gridVersion}
-              onChange={setGridVersion}
-              variant="segmented"
-              theme="light"
-              aria-label="Data grid version"
-            />
-
             <div className={styles.monthPicker}>
               <button type="button" className={styles.monthCaret} onClick={() => setMonthOffset((o) => o - 1)} aria-label="Previous month">
                 <CaretLeftIcon />
@@ -187,65 +168,28 @@ export function EndOfShiftReportListPage() {
           </div>
         </div>
 
-        {gridVersion === "v1" ? (
-          <>
-            <div className={styles.tableHeader}>
-              <button type="button" className={styles.sortableHeaderCell} onClick={() => setOldestFirst((v) => !v)}>
-                Day
-                <CaretDownIcon className={[styles.sortIcon, oldestFirst ? styles.sortIconFlipped : ""].filter(Boolean).join(" ")} />
-              </button>
-              <span className={styles.headerCell}>
-                Status
-                <CaretDownIcon className={styles.sortIcon} />
-              </span>
-              <span className={styles.headerCell}>
-                Signed Off By
-                <CaretDownIcon className={styles.sortIcon} />
-              </span>
-              <span className={styles.headerArrowSpacer} aria-hidden="true" />
-            </div>
+        <div className={styles.tableHeader}>
+          <button type="button" className={styles.sortableHeaderCell} onClick={() => setOldestFirst((v) => !v)}>
+            Day
+            <CaretDownIcon className={[styles.sortIcon, oldestFirst ? styles.sortIconFlipped : ""].filter(Boolean).join(" ")} />
+          </button>
+          <span className={styles.headerCell}>
+            Status
+            <CaretDownIcon className={styles.sortIcon} />
+          </span>
+          <span className={styles.headerCell}>
+            Signed Off By
+            <CaretDownIcon className={styles.sortIcon} />
+          </span>
+          <span className={styles.headerArrowSpacer} aria-hidden="true" />
+        </div>
 
-            <div className={styles.dayCards}>
-              {orderedDays.map((day) => (
-                <DayCard key={dayKey(day)} day={day} viewerRole={viewerRole} />
-              ))}
-              {now && orderedDays.length === 0 && <p className={styles.emptyState}>No days to show for this month.</p>}
-            </div>
-          </>
-        ) : (
-          <>
-            <div className={styles.tableHeaderV2}>
-              <button type="button" className={styles.sortableHeaderCell} onClick={() => setOldestFirst((v) => !v)}>
-                Day
-                <CaretDownIcon className={[styles.sortIcon, oldestFirst ? styles.sortIconFlipped : ""].filter(Boolean).join(" ")} />
-              </button>
-              <span className={styles.headerCell}>
-                Shift Reports Completed
-                <CaretDownIcon className={styles.sortIcon} />
-              </span>
-              <span className={styles.headerCell}>
-                Reports Completed By
-                <CaretDownIcon className={styles.sortIcon} />
-              </span>
-              <span className={styles.headerCell}>
-                Site Director Sign-Off
-                <CaretDownIcon className={styles.sortIcon} />
-              </span>
-              <span className={styles.headerCell}>
-                Status
-                <CaretDownIcon className={styles.sortIcon} />
-              </span>
-              <span className={styles.headerArrowSpacer} aria-hidden="true" />
-            </div>
-
-            <div className={styles.dayCards}>
-              {orderedDays.map((day) => (
-                <DayRowV2 key={dayKey(day)} day={day} viewerRole={viewerRole} />
-              ))}
-              {now && orderedDays.length === 0 && <p className={styles.emptyState}>No days to show for this month.</p>}
-            </div>
-          </>
-        )}
+        <div className={styles.dayCards}>
+          {orderedDays.map((day) => (
+            <DayCard key={dayKey(day)} day={day} viewerRole={viewerRole} />
+          ))}
+          {now && orderedDays.length === 0 && <p className={styles.emptyState}>No days to show for this month.</p>}
+        </div>
       </main>
 
       <ManagerQueuePanel open={managerQueueOpen} onClose={() => setManagerQueueOpen(false)} theme="light" />
@@ -270,7 +214,6 @@ function DayCard({ day, viewerRole }: { day: ShiftReportDayRow; viewerRole: View
   const dateLabel = getDayRowDateLabel(day.date);
   const dayInProgress = getDayInProgressLabel(day);
   const signOffStatus = getSignOffStatusDisplay(day);
-  const lateShiftNote = getLateShiftNote(day);
 
   const rowContent = (
     <>
@@ -289,11 +232,6 @@ function DayCard({ day, viewerRole }: { day: ShiftReportDayRow; viewerRole: View
         {signOffStatus.caption && (
           <span className={styles.signOffCaption} data-tone={signOffStatus.tone}>
             {signOffStatus.caption}
-          </span>
-        )}
-        {lateShiftNote && (
-          <span className={styles.signOffCaption} data-tone="warning">
-            {lateShiftNote}
           </span>
         )}
       </div>
@@ -321,96 +259,3 @@ function DayCard({ day, viewerRole }: { day: ShiftReportDayRow; viewerRole: View
   );
 }
 
-/**
- * The "v2" flat data-grid row (Figma fileKey 0UJDRcrFiXkn16yfc2MUEW, node 229:1569) — one row per
- * day, no accordion. See getShiftReportRowV2Display for how the five columns are derived.
- */
-function DayRowV2({ day, viewerRole }: { day: ShiftReportDayRow; viewerRole: ViewerRole }) {
-  const dateLabel = getDayRowDateLabel(day.date);
-  const v2 = getShiftReportRowV2Display(day);
-  const rowClassName = [styles.dayRowV2, day.isFuture ? styles.dayRowV2Disabled : ""].filter(Boolean).join(" ");
-
-  const content = (
-    <>
-      <span className={styles.dayCellV2}>
-        <span className={styles.dayDate}>{dateLabel}</span>
-      </span>
-
-      <div className={styles.reportStatusCell}>
-        {day.isFuture ? (
-          <span className={styles.cellMutedDash}>—</span>
-        ) : (
-          <div className={styles.reportStatusText}>
-            <span className={styles.reportStatusCount}>{v2.completedLabel}</span>
-            {v2.missedCaption && (
-              <span className={styles.reportStatusCaption} data-tone="danger">
-                {v2.missedCaption}
-              </span>
-            )}
-          </div>
-        )}
-      </div>
-
-      <div className={styles.completedByCellV2}>
-        <span className={styles.completedByTextV2}>{v2.completedByLabel}</span>
-      </div>
-
-      <div className={styles.signOffStatusCell}>
-        {v2.signOff.kind === "signedOff" ? (
-          <>
-            <span className={styles.signOffTitle}>
-              <CircleCheckIcon className={styles.signOffTitleIcon} />
-              {v2.signOff.name}
-            </span>
-            {v2.signOff.timestamp && <span className={styles.signOffCaption}>{v2.signOff.timestamp}</span>}
-          </>
-        ) : (
-          <>
-            <span className={styles.signOffTitle} data-tone={v2.signOff.tone}>
-              {v2.signOff.title}
-            </span>
-            {v2.signOff.caption && (
-              <span className={styles.signOffCaption} data-tone={v2.signOff.tone}>
-                {v2.signOff.caption}
-              </span>
-            )}
-          </>
-        )}
-      </div>
-
-      <div className={styles.statusTagCellV2}>
-        {v2.tag && (
-          <span className={styles.statusTagV2} data-tone={v2.tag.tone}>
-            {v2.tag.label}
-          </span>
-        )}
-        {v2.tagCaption && <span className={styles.statusTagCaptionV2}>{v2.tagCaption}</span>}
-      </div>
-
-      <span className={styles.rowArrow}>{!day.isFuture && <ArrowRightIcon />}</span>
-    </>
-  );
-
-  if (day.isFuture) {
-    return (
-      <div className={rowClassName} aria-disabled="true">
-        {content}
-      </div>
-    );
-  }
-
-  // Every non-future day opens the consolidated Daily Report (so the Site Director can review every
-  // shift's own data there before signing off — that's the only place sign-off actually happens, not
-  // this list), including today, which reads each shift's own live status there (see opensDailyReport).
-  // A day that skips the Daily Report (e.g. "Signed Off Blocked") still carries its own date/persona
-  // along to the End of Shift Report directly, same as dailyReportHref does.
-  const href = opensDailyReport(day)
-    ? dailyReportHref(day, viewerRole)
-    : `/manage-shift/end-of-shift-report?date=${formatDateParam(day.date)}${viewerRole !== "director" ? `&as=${viewerRole}` : ""}`;
-
-  return (
-    <Link href={href} className={rowClassName}>
-      {content}
-    </Link>
-  );
-}

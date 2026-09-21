@@ -7,6 +7,8 @@ import { Nav } from "./Nav";
 import { ManagerQueuePanel } from "./ManagerQueuePanel";
 import { ShiftReportSectionCard, type ShiftReportSectionNotesConfig } from "./ShiftReportSectionCard";
 import { ShiftInProgressPanel } from "./ShiftInProgressPanel";
+import { AssociateAttendanceModal } from "./AssociateAttendanceModal";
+import { ReportItsModal } from "./ReportItsModal";
 import { Button } from "../ui/Button";
 import { ButtonGroup } from "../ui/ButtonGroup";
 import { Modal } from "../ui/Modal";
@@ -29,9 +31,10 @@ import {
   VectorSquareIcon,
 } from "./icons";
 import type { ShiftCompletedStats } from "./ShiftInProgressPanel";
-import { formatDateParam, formatSignOffNowLabel, parseDateParam } from "../../lib/shiftReportListData";
+import { formatDateParam, formatSignOffNowLabel, isPastMissedShift, parseDateParam } from "../../lib/shiftReportListData";
 import { siteInfo } from "../../lib/homeDashboardData";
 import { buildDailyReport } from "../../lib/mapPageData";
+import { buildShiftReport } from "../../lib/mapShiftReportData";
 import type { ContractBuilding } from "../../lib/sowContract";
 import {
   INITIAL_SHIFT_REPORTS,
@@ -191,6 +194,12 @@ export function EndOfShiftReportPage({ contractBuildings }: EndOfShiftReportPage
   // (headerTopRow, left of the date picker) — this page is nested under Daily Report, so it reads the
   // same way there does rather than getting its own, different breadcrumb.
   const listHref = viewerRole === "director" ? "/manage-shift/end-of-shift-reports" : `/manage-shift/end-of-shift-reports?as=${viewerRole}`;
+  // The Map feature's own independent copy of this same shift (lib/mapShiftReportData, pinned to the
+  // same dayOffset-0 sample as `dailyReport` above) — only read for its named associate roster/Report
+  // Its detail, so the Hours and Headcount/Report Its rows below can open the exact same
+  // AssociateAttendanceModal/ReportItsModal the Map's own Daily Report view opens from those same
+  // rows, instead of this feature inventing a second, parallel drill-down for the same data.
+  const mapShiftReport = buildShiftReport(dailyReport.shifts.find((s) => s.key === activeShiftKey)!, 0, contractBuildings);
   const shift = reports[activeShiftKey];
   // The roster's own lead/Responsible Manager doubles as "the signed-in
   // manager" for whichever shift is active — there's no real auth in this
@@ -214,6 +223,11 @@ export function EndOfShiftReportPage({ contractBuildings }: EndOfShiftReportPage
     quality: true,
   });
   const [confirmOpen, setConfirmOpen] = useState(false);
+  // Opened from the Hours and Headcount/Report Its rows below (HoursHeadcountData/QualityData) — same
+  // AssociateAttendanceModal/ReportItsModal the Map's own Daily Report view opens from its own copies
+  // of those same rows (see mapShiftReport above).
+  const [headcountModalOpen, setHeadcountModalOpen] = useState(false);
+  const [reportItsModalOpen, setReportItsModalOpen] = useState(false);
   // Set by the Side Panel's own rows (handleSelectSection) — the id of the
   // left-column card to scroll to once it's guaranteed to be expanded and
   // laid out. Cleared right after the scroll fires.
@@ -302,14 +316,27 @@ export function EndOfShiftReportPage({ contractBuildings }: EndOfShiftReportPage
   }
 
   const isLocked = Boolean(shift.completedBy);
+  // Same illustrative "missed report" day/shift the Shift Reports list and Daily Report page already
+  // mark not submitted (isPastMissedShift) — this shift loads unlocked (no `completed=1` seed reaches
+  // it, see DailyReportPage's own ShiftRow href), so the Side Panel needs its own way to tell "genuinely
+  // still open" apart from "already over, just never reported."
+  const notSubmittedPastDeadline = !isLocked && isPastMissedShift(activeShiftKey, reportDate);
   const responsibleManager = getResponsibleManager(shift);
   const isCurrentResponsible = responsibleManager?.id === currentManagerId;
   const shiftElapsedSeconds = now ? getElapsedSeconds(leadManager.clockIn, now) : 0;
-  const hasEnded = shiftElapsedSeconds >= SHIFT_DURATION_SECONDS;
+  // A missed-report day is a real calendar day already in the past — its shift ended regardless of
+  // what the real wall-clock happens to read right now (elapsed-since-clockIn only makes sense for
+  // today's own live shift), so it's always treated as ended/not-live rather than left to whatever
+  // liveStatus the current time-of-day would otherwise imply.
+  const hasEnded = notSubmittedPastDeadline || shiftElapsedSeconds >= SHIFT_DURATION_SECONDS;
   const progressPercent = Math.min(100, (shiftElapsedSeconds / SHIFT_DURATION_SECONDS) * 100);
   // Against Day 6:00AM-2:30PM / Swing 2:00PM-10:00PM / Graveyard 10:00PM-6:00AM (SHIFT_SCHEDULE), independent of
   // any manager's own clock-in — drives the Side Panel's "Shift Not Started" (grey timer) display below.
-  const liveStatus = now ? getShiftLiveStatus(activeShiftKey, now) : "inProgress";
+  const liveStatus = notSubmittedPastDeadline ? "ended" : now ? getShiftLiveStatus(activeShiftKey, now) : "inProgress";
+  // A shift that hasn't started yet has nobody actually on it and nothing actually reported — the
+  // roster/notes below are illustrative sample data seeded for once the shift gets going, not a real
+  // record of anyone having checked in or written anything yet, so both read empty until then.
+  const shiftNotStarted = liveStatus === "notStarted";
   const shiftTimeRange = SHIFT_OPTIONS.find((option) => option.key === activeShiftKey)?.timeRange ?? "";
   const readyToComplete = allSectionsHaveNotes(shift);
   // Only a Manager on Shift can touch this report at all, and only once this specific shift has
@@ -368,7 +395,7 @@ export function EndOfShiftReportPage({ contractBuildings }: EndOfShiftReportPage
   function notesConfigFor(sectionKey: SectionKey): ShiftReportSectionNotesConfig {
     const section = shift.sections[sectionKey];
     return {
-      items: section.notes,
+      items: shiftNotStarted ? [] : section.notes,
       tagVocabulary: section.tagVocabulary,
       // Locked (no composer, no edit/delete menu) once the report's actually been submitted
       // (isLocked), or for anyone who isn't the Manager on Shift for this specific, already-started
@@ -444,6 +471,14 @@ export function EndOfShiftReportPage({ contractBuildings }: EndOfShiftReportPage
               <p className={styles.reportsPendingTitle}>Shift Reports Pending</p>
               <p>Sign Off Due by 8:00am EST on {getFullDateLabel(new Date((now ?? reportDate).getFullYear(), (now ?? reportDate).getMonth(), (now ?? reportDate).getDate() + 1))}.</p>
             </div>
+          ) : !isSignedOff && viewerRole !== "director" ? (
+            // Every shift is in, but the Site Director hasn't reviewed the day yet, and only he can
+            // (Figma fileKey 0UJDRcrFiXkn16yfc2MUEW, node 326:46528) — same non-director read-only
+            // message as DailyReportPage's own, instead of the sign-off input/avatar row.
+            <div className={styles.signOffOverdueGroup}>
+              <p className={styles.signOffOverdueTitle}>Sign off overdue for the daily report</p>
+              <p className={styles.signOffOverdueCaption}>Awaiting sign off from site director</p>
+            </div>
           ) : (
             <>
               {isSignedOff ? (
@@ -499,7 +534,15 @@ export function EndOfShiftReportPage({ contractBuildings }: EndOfShiftReportPage
           </Link>
 
           <ButtonGroup
-            options={SHIFT_OPTIONS.map((option) => ({ id: option.key, label: option.label }))}
+            options={SHIFT_OPTIONS.map((option) => ({
+              id: option.key,
+              label: option.label,
+              // A shift that hasn't started yet today has nothing to show (see shiftNotStarted above) —
+              // disabled here too so a manager can't toggle to it early, same as DailyReportPage's own
+              // not-started shift row (aria-disabled, no link). The shift already open stays clickable
+              // even if it somehow reads not-started, so the active pill is never itself greyed out.
+              disabled: isToday && option.key !== activeShiftKey && now !== null && getShiftLiveStatus(option.key, now) === "notStarted",
+            }))}
             value={activeShiftKey}
             onChange={setActiveShiftKey}
             theme="light"
@@ -518,15 +561,18 @@ export function EndOfShiftReportPage({ contractBuildings }: EndOfShiftReportPage
             <ShiftReportSectionCard
               id="section-managers"
               title="Shift Managers"
-              subtitle={`${shift.managers.length} Managers on Shift`}
               open={openSections.managers}
               onToggle={() => toggleSection("managers")}
               completed={isLocked}
             >
               <div className={styles.managersTable}>
-                {shift.managers.map((manager) => (
-                  <ManagerRow key={manager.id} manager={manager} now={now} isLocked={isLocked} />
-                ))}
+                {shiftNotStarted ? (
+                  <p className={styles.managersEmptyState}>No managers have checked in yet.</p>
+                ) : (
+                  shift.managers.map((manager) => (
+                    <ManagerRow key={manager.id} manager={manager} now={now} isLocked={isLocked || notSubmittedPastDeadline} />
+                  ))
+                )}
               </div>
             </ShiftReportSectionCard>
 
@@ -547,7 +593,7 @@ export function EndOfShiftReportPage({ contractBuildings }: EndOfShiftReportPage
               notes={notesConfigFor("hoursHeadcount")}
               completed={isLocked}
             >
-              <HoursHeadcountData shift={shift} />
+              <HoursHeadcountData shift={shift} onOpenHeadcount={() => setHeadcountModalOpen(true)} />
             </ShiftReportSectionCard>
 
             <ShiftReportSectionCard
@@ -580,7 +626,7 @@ export function EndOfShiftReportPage({ contractBuildings }: EndOfShiftReportPage
               notes={notesConfigFor("quality")}
               completed={isLocked}
             >
-              <QualityData shift={shift} />
+              <QualityData shift={shift} onOpenReportIts={() => setReportItsModalOpen(true)} />
             </ShiftReportSectionCard>
           </div>
 
@@ -590,15 +636,16 @@ export function EndOfShiftReportPage({ contractBuildings }: EndOfShiftReportPage
             liveStatus={liveStatus}
             elapsedSeconds={shiftElapsedSeconds}
             progressPercent={progressPercent}
-            managers={shift.managers}
+            managers={shiftNotStarted ? [] : shift.managers}
             sections={SIDE_PANEL_SECTIONS.map((s) => ({
               key: s.key,
               icon: s.icon,
               iconColor: s.iconColor,
               title: SECTION_TITLES[s.key],
-              noteCount: getSectionNoteCount(shift, s.key),
+              noteCount: shiftNotStarted ? 0 : getSectionNoteCount(shift, s.key),
             }))}
             isLocked={isLocked}
+            notSubmittedPastDeadline={notSubmittedPastDeadline}
             submittedByName={completedByManager?.name}
             submittedAtLabel={submittedAtLabel}
             completedStats={completedStats}
@@ -623,6 +670,22 @@ export function EndOfShiftReportPage({ contractBuildings }: EndOfShiftReportPage
           </Button>
         </div>
       </Modal>
+
+      <AssociateAttendanceModal
+        open={headcountModalOpen}
+        onClose={() => setHeadcountModalOpen(false)}
+        shiftLabel={SHIFT_LABELS[activeShiftKey]}
+        associates={mapShiftReport.associateAttendance}
+        theme="light"
+      />
+
+      <ReportItsModal
+        open={reportItsModalOpen}
+        onClose={() => setReportItsModalOpen(false)}
+        shiftLabel={SHIFT_LABELS[activeShiftKey]}
+        report={mapShiftReport}
+        theme="light"
+      />
     </div>
   );
 }
@@ -631,8 +694,9 @@ function ManagerRow({ manager, now, isLocked }: { manager: ShiftManager; now: Da
   // Still on shift: nobody has clocked out yet, so the row shows a live elapsed "Time on Shift" and a placeholder "--:--" Clocked Out.
   // `now` is null only for the initial server-rendered/pre-hydration frame (see EndOfShiftReportPage's own note); 0 elapsed there is fine since the real value replaces it within a frame of mount.
   const elapsed = now ? getElapsedSeconds(manager.clockIn, now) : 0;
-  // A submitted report means the shift is over — nobody's still clocked in by then, so every manager
-  // reads as checked out (with a real Checked Out time) once the report is locked, regardless of
+  // A submitted report, or a past day's shift that simply never got reported (notSubmittedPastDeadline,
+  // passed in here as `isLocked` too), both mean the shift itself is over — nobody's still clocked in by
+  // then, so every manager reads as checked out (with a real Checked Out time), regardless of
   // manager.checkedOut (only meaningful while the shift is still in progress).
   const checkedOut = isLocked || Boolean(manager.checkedOut);
 
@@ -707,13 +771,16 @@ function RingStat({
   );
 }
 
-function HoursHeadcountData({ shift }: { shift: ShiftReportState }) {
+function HoursHeadcountData({ shift, onOpenHeadcount }: { shift: ShiftReportState; onOpenHeadcount: () => void }) {
   const d = shift.sections.hoursHeadcount;
   return (
     <div className={styles.dataGroup}>
       <div className={styles.flatDataGroup}>
         <RingStat percent={d.percentCaptured} color="var(--color-warning-500)" label="Hours Captured" value={d.hoursCaptured} caption={`of ${d.totalTime} shift time`} size={80} />
-        <div className={styles.headcountRow}>
+        {/* Same named-associate drill-down as the Map's own Daily Report view's "Hours and Headcount"
+            row (AssociateAttendanceModal via mapShiftReport) — the whole row is one big button, matching
+            FullDayReportModalV2's own headcountCard pattern. */}
+        <button type="button" className={[styles.headcountRow, styles.headcountRowButton].join(" ")} onClick={onOpenHeadcount}>
           <div className={[styles.headcountItem, styles.headcountItemFlex].join(" ")}>
             <span className={styles.headcountItemLabel}>Scheduled Headcount</span>
             <span className={styles.headcountItemValue}>{d.scheduledHeadcount}</span>
@@ -738,7 +805,7 @@ function HoursHeadcountData({ shift }: { shift: ShiftReportState }) {
               <span className={[styles.headcountItemValue, styles.headcountItemValueMuted].join(" ")}>{d.callOuts}</span>
             </div>
           </div>
-        </div>
+        </button>
       </div>
     </div>
   );
@@ -846,7 +913,7 @@ function ReportItRow({ label, value }: { label: string; value: string | number }
   );
 }
 
-function QualityData({ shift }: { shift: ShiftReportState }) {
+function QualityData({ shift, onOpenReportIts }: { shift: ShiftReportState; onOpenReportIts: () => void }) {
   const d = shift.sections.quality;
   return (
     <div className={styles.dataGroup}>
@@ -861,14 +928,16 @@ function QualityData({ shift }: { shift: ShiftReportState }) {
             </div>
           </div>
 
-          <div className={styles.qualityColumn}>
+          {/* Same itemized drill-down as the Map's own Daily Report view's "Report Its" row
+              (ReportItsModal via mapShiftReport). */}
+          <button type="button" className={[styles.qualityColumn, styles.qualityColumnButton].join(" ")} onClick={onOpenReportIts}>
             <span className={styles.qualityGroupLabel}>Report Its</span>
             <div className={styles.reportItsList}>
               <ReportItRow label="Submitted" value={d.reportIts.submitted} />
               <ReportItRow label="Rejected" value={d.reportIts.rejected} />
               <ReportItRow label="Acceptance Rate" value={`${d.reportIts.acceptanceRate}%`} />
             </div>
-          </div>
+          </button>
         </div>
 
         <div className={styles.qualityColumn}>

@@ -5,6 +5,8 @@ export type ButtonGroupOption<T extends string> = {
   id: T;
   label: ReactNode;
   icon?: ReactNode;
+  /** Renders this one option inert (greyed out, not clickable) without removing it from the row — e.g. a shift that hasn't started yet on today's toggle. */
+  disabled?: boolean;
 };
 
 export type ButtonGroupTheme = "dark" | "light";
@@ -112,6 +114,7 @@ export function ButtonGroup<T extends string>({
             type="button"
             className={[styles.option, isActive ? styles.optionActive : ""].filter(Boolean).join(" ")}
             aria-pressed={isActive}
+            disabled={option.disabled}
             onClick={() => onChange(option.id)}
             style={isActive && activeTextColor ? { color: activeTextColor } : undefined}
           >

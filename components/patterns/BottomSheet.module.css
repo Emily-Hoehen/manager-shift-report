@@ -47,6 +47,12 @@
   outline: none;
 }
 
+.overlay[data-theme="light"] .sheet {
+  background-color: var(--color-neutral-100);
+  color: var(--color-text-lt-default);
+  box-shadow: var(--shadow-lt-popup-menu);
+}
+
 .sheetScroll {
   flex: 1;
   min-height: 0;
@@ -85,6 +91,10 @@
   color: var(--color-text-dt-default);
 }
 
+.overlay[data-theme="light"] .title {
+  color: var(--color-text-lt-default);
+}
+
 .closeButton {
   display: flex;
   align-items: center;
@@ -103,6 +113,14 @@
 
 .closeButton:hover {
   color: var(--color-text-dt-default);
+}
+
+.overlay[data-theme="light"] .closeButton {
+  color: var(--color-text-lt-grey);
+}
+
+.overlay[data-theme="light"] .closeButton:hover {
+  color: var(--color-text-lt-default);
 }
 
 .closeButton:focus-visible {

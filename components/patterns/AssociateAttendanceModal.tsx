@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { BottomSheet } from "./BottomSheet";
+import { BottomSheet, type BottomSheetTheme } from "./BottomSheet";
 import type { AssociateAttendanceEntry } from "../../lib/mapShiftReportData";
 import styles from "./AssociateAttendanceModal.module.css";
 
@@ -19,6 +19,8 @@ export type AssociateAttendanceModalProps = {
   onClose: () => void;
   shiftLabel: string;
   associates: AssociateAttendanceEntry[];
+  /** Defaults to "dark" (see BottomSheet) — the desktop End of Shift Report passes "light" instead. */
+  theme?: BottomSheetTheme;
 };
 
 /**
@@ -33,7 +35,7 @@ export type AssociateAttendanceModalProps = {
  * 98:3539 ("Day Shift
  * Associates"): filled pill filter buttons, not underline tabs.
  */
-export function AssociateAttendanceModal({ open, onClose, shiftLabel, associates }: AssociateAttendanceModalProps) {
+export function AssociateAttendanceModal({ open, onClose, shiftLabel, associates, theme = "dark" }: AssociateAttendanceModalProps) {
   const [activeTab, setActiveTab] = useState<HeadcountTab>("Scheduled");
 
   const arrivedCount = associates.filter((a) => a.status === "Arrived").length;
@@ -47,8 +49,8 @@ export function AssociateAttendanceModal({ open, onClose, shiftLabel, associates
   });
 
   return (
-    <BottomSheet open={open} onClose={onClose} title={`${shiftLabel} Shift Headcount`}>
-      <div className={styles.body}>
+    <BottomSheet open={open} onClose={onClose} title={`${shiftLabel} Shift Headcount`} theme={theme}>
+      <div className={styles.body} data-theme={theme}>
         <div className={styles.filterRow}>
           {HEADCOUNT_TABS.map((tab) => (
             <button

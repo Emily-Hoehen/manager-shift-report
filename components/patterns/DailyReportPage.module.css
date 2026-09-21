@@ -158,7 +158,32 @@
 
 .reportsPendingTitle {
   font-family: var(--type-h3-family, var(--type-body-lg-family));
-  font-weight: 700;
+  font-weight: 500;
+  color: var(--color-text-lt-grey);
+}
+
+/* "Sign off overdue for the daily report" — the non-director read-only state of .dailySummaryCard once
+   every shift is in but the Site Director hasn't signed off yet (Figma fileKey 0UJDRcrFiXkn16yfc2MUEW,
+   node 326:46528). */
+.signOffOverdueGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.signOffOverdueTitle {
+  font-family: var(--type-h3-family);
+  font-size: var(--type-h3-size);
+  font-weight: var(--type-h3-weight);
+  line-height: var(--type-h3-leading);
+  color: var(--color-text-lt-grey);
+}
+
+.signOffOverdueCaption {
+  font-family: var(--type-body-md-family);
+  font-size: var(--type-body-md-size);
+  font-weight: var(--type-body-md-weight);
+  line-height: var(--type-body-md-leading);
   color: var(--color-text-lt-grey);
 }
 
@@ -271,6 +296,13 @@
   font-family: var(--type-body-sm-family);
   font-size: var(--type-body-md-size);
   color: var(--color-text-lt-grey);
+}
+
+.shiftCardMetaDanger {
+  font-family: var(--type-h4-family);
+  font-weight: var(--type-h4-weight);
+  font-size: var(--type-h4-size);
+  color: var(--color-text-lt-danger);
 }
 
 /* Right-aligned status block for every non-completed tone (Figma node 247:21796's "Shift in

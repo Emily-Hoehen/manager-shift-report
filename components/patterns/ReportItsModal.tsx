@@ -1,6 +1,6 @@
 "use client";
 
-import { BottomSheet } from "./BottomSheet";
+import { BottomSheet, type BottomSheetTheme } from "./BottomSheet";
 import type { ReportItemEntry, ShiftReport } from "../../lib/mapShiftReportData";
 import styles from "./ReportItsModal.module.css";
 
@@ -9,6 +9,8 @@ export type ReportItsModalProps = {
   onClose: () => void;
   shiftLabel: string;
   report: Pick<ShiftReport, "reportItems" | "totalReportIts" | "reportItsRejected" | "reportItsAcceptanceRate">;
+  /** Defaults to "dark" (see BottomSheet) — the desktop End of Shift Report passes "light" instead. */
+  theme?: BottomSheetTheme;
 };
 
 /**
@@ -16,10 +18,10 @@ export type ReportItsModalProps = {
  * BottomSheet chrome. Matches Figma fileKey 0UJDRcrFiXkn16yfc2MUEW,
  * node 98:4172 ("Reports Its Modal").
  */
-export function ReportItsModal({ open, onClose, shiftLabel, report }: ReportItsModalProps) {
+export function ReportItsModal({ open, onClose, shiftLabel, report, theme = "dark" }: ReportItsModalProps) {
   return (
-    <BottomSheet open={open} onClose={onClose} title={`${shiftLabel} Shift Report Its`}>
-      <div className={styles.body}>
+    <BottomSheet open={open} onClose={onClose} title={`${shiftLabel} Shift Report Its`} theme={theme}>
+      <div className={styles.body} data-theme={theme}>
         <div className={styles.statRow}>
           <div className={styles.stat}>
             <span className={styles.statLabel}>Submitted</span>

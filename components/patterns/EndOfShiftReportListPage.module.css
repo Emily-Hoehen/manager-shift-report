@@ -261,41 +261,6 @@
   color: var(--color-text-lt-default);
 }
 
-/* ---------------- Report Status cell ---------------- */
-
-.reportStatusCell {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding-left: 24px;
-  padding-right: 24px;
-  min-width: 0;
-}
-
-.reportStatusCount {
-  font-family: var(--type-body-md-family);
-  font-weight: var(--type-body-md-weight);
-  font-size: var(--type-body-md-size);
-  color: var(--color-text-lt-default);
-}
-
-.reportStatusText {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 0;
-}
-
-.reportStatusCaption {
-  font-family: var(--type-body-md-family);
-  font-size: var(--type-body-md-size);
-  color: var(--color-text-lt-grey);
-}
-
-.reportStatusCaption[data-tone="danger"] {
-  color: var(--color-text-lt-danger);
-}
-
 .overduePill {
   display: inline-flex;
   align-self: flex-start;
@@ -420,99 +385,6 @@
   color: var(--color-text-lt-blue);
 }
 
-/* ---------------- v2 flat grid (Figma node 229:1569) ---------------- */
-
-.tableHeaderV2,
-.dayRowV2 {
-  display: grid;
-  grid-template-columns: 320px 250px 250px 300px 1fr 64px;
-  align-items: center;
-}
-
-.dayRowV2 {
-  min-height: 80px;
-  border-radius: 8px;
-  background-color: var(--color-neutral-100);
-  box-shadow: var(--shadow-lt-card);
-  text-decoration: none;
-  color: inherit;
-  transition: background-color 120ms ease;
-}
-
-.dayRowV2:hover {
-  background-color: var(--wash-primary-blue-15);
-}
-
-.dayRowV2Disabled {
-  cursor: default;
-}
-
-.dayRowV2Disabled:hover {
-  background-color: var(--color-neutral-100);
-}
-
-.dayCellV2 {
-  display: flex;
-  align-items: center;
-  padding-left: 24px;
-  min-width: 0;
-}
-
-.completedByCellV2 {
-  display: flex;
-  align-items: center;
-  padding-left: 24px;
-  padding-right: 24px;
-  min-width: 0;
-}
-
-.completedByTextV2 {
-  font-family: var(--type-body-md-family);
-  font-size: var(--type-body-md-size);
-  color: var(--color-text-lt-default);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  min-width: 0;
-}
-
-.statusTagCellV2 {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 8px;
-  padding-left: 24px;
-  padding-right: 24px;
-  min-width: 0;
-}
-
-.statusTagV2 {
-  display: inline-flex;
-  align-items: center;
-  padding: 6px 12px;
-  border-radius: 4px;
-  font-family: var(--type-h4-family);
-  font-weight: var(--type-h4-weight);
-  font-size: var(--type-h4-size);
-  white-space: nowrap;
-}
-
-.statusTagV2[data-tone="warning"] {
-  background-color: var(--wash-warning-15);
-  color: var(--color-text-lt-warning);
-}
-
-.statusTagV2[data-tone="danger"] {
-  background-color: var(--wash-danger-15);
-  color: var(--color-text-lt-danger);
-}
-
-.statusTagCaptionV2 {
-  font-family: var(--type-body-sm-family);
-  font-size: var(--type-body-sm-size);
-  color: var(--color-text-lt-grey);
-}
-
 /* ---------------- Responsive ---------------- */
 
 @media (max-width: 1100px) {
@@ -525,20 +397,6 @@
   .tableHeader > *:nth-child(3),
   .dayHeaderRow > *:nth-child(3),
   .childRow > *:nth-child(3) {
-    display: none;
-  }
-
-  .tableHeaderV2,
-  .dayRowV2 {
-    grid-template-columns: 240px 1fr 64px;
-  }
-
-  .tableHeaderV2 > *:nth-child(2),
-  .tableHeaderV2 > *:nth-child(3),
-  .tableHeaderV2 > *:nth-child(4),
-  .dayRowV2 > *:nth-child(2),
-  .dayRowV2 > *:nth-child(3),
-  .dayRowV2 > *:nth-child(4) {
     display: none;
   }
 }
@@ -554,8 +412,7 @@
     justify-content: space-between;
   }
 
-  .tableHeader,
-  .tableHeaderV2 {
+  .tableHeader {
     display: none;
   }
 
@@ -569,24 +426,10 @@
     padding: 16px 24px;
   }
 
-  .dayRowV2 {
-    grid-template-columns: 1fr;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-    padding: 16px 24px;
-    min-height: 0;
-  }
-
   .dayCell,
   .childDayCell,
-  .dayCellV2,
-  .reportStatusCell,
   .signOffStatusCell,
-  .signedOffByCell,
-  .completedByCellV2,
-  .statusTagCellV2 {
+  .signedOffByCell {
     padding-left: 0;
     padding-right: 0;
   }

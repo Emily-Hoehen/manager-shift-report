@@ -183,6 +183,10 @@ export function CircleCheckIcon({ className }: IconProps) {
   return fa("solid", "circle-check", className);
 }
 
+export function CircleExclamationIcon({ className }: IconProps) {
+  return fa("solid", "circle-exclamation", className);
+}
+
 /**
  * Icons below are new for the "Map" feature (fileKey n/a — no Figma
  * source; built from a reference screenshot of an internal Mapbox

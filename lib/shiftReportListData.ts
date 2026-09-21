@@ -44,8 +44,6 @@ export type ShiftReportRow = {
   completedAtLabel?: string;
   /** "Swing Shift Report due at 2:00PM EDT" — only set when status is "dueLater". */
   dueLabel?: string;
-  /** True when a "completed" shift's own report came in well past its scheduled end (SHIFT_END_LABEL) — still fully submitted and never blocks sign-off, just flagged so a manager can see it ran late. */
-  late?: boolean;
 };
 
 export type ShiftReportDayRow = {
@@ -108,9 +106,6 @@ function buildTodayRow(date: Date, now: Date): ShiftReportDayRow {
   return { date, isToday: true, isFuture: false, shifts, signedOffBySiteDirector: false };
 }
 
-/** How much later than usual (SHIFT_TYPICAL_COMPLETION_MINUTES) a "late" illustrative shift report comes in — well past its scheduled end (SHIFT_END_LABEL) but still same-day. */
-const LATE_COMPLETION_MINUTES = 95;
-
 /** Two illustrative past days (day-of-month) that never got their Graveyard report in — everything
  * else in the month is fully submitted (see buildPastRow). Gives the grid a real "Signed Off
  * Blocked"/overdue example to look at, and — since a day with a missed shift routes straight to that
@@ -118,33 +113,31 @@ const LATE_COMPLETION_MINUTES = 95;
  * real example of a past shift report that's still open for notes instead of locked read-only. */
 const OVERDUE_DAYS_OF_MONTH = [3, 17];
 
+/** Whether `shiftKey` is the one OVERDUE_DAYS_OF_MONTH day's own missed Graveyard report — shared with
+ * DailyReportPage (its own ShiftRow tone) and EndOfShiftReportPage (whether that shift loads unlocked
+ * instead of pre-seeded "completed"), so every surface agrees about which past shift, on which day,
+ * never actually got submitted. */
+export function isPastMissedShift(shiftKey: ShiftKey, date: Date): boolean {
+  return shiftKey === "graveyard" && OVERDUE_DAYS_OF_MONTH.includes(date.getDate());
+}
+
 /**
  * Every past day gets a stable, non-random illustrative pattern (day-of-month, not a live record) rather than
  * a real submission history — this list has no backend to read a month of history from, so every day but
  * today is flavor data, same convention as this feature's other static samples. Only today's own row (see
  * buildTodayRow) can show a shift still in progress; OVERDUE_DAYS_OF_MONTH are the only past days with a
- * shift not yet submitted — every other past day's shifts are fully submitted. Every 7th day, Swing's own
- * report is flagged as having come in late (still fully completed — sign-off is never blocked by lateness,
- * just today's still-open shift or a missed one) so the grid has a real example of an overdue-but-completed
- * report, attributed to Swing's own lead, whose role is literally "Shift Manager"
- * (INITIAL_SHIFT_REPORTS.swing.managers[0]). Sign-off itself follows its own, separate every-6th-day pattern
- * below.
+ * shift not yet submitted — every other past day's shifts are fully submitted. Sign-off follows its own,
+ * separate every-6th-day pattern below.
  */
 function buildPastRow(date: Date): ShiftReportDayRow {
   const dayOfMonth = date.getDate();
-  const lateShiftKey: ShiftKey = "swing";
-  const isLateDay = dayOfMonth % 7 === 0;
-  const missedShiftKey: ShiftKey | null = OVERDUE_DAYS_OF_MONTH.includes(dayOfMonth) ? "graveyard" : null;
+  const missedShiftKey: ShiftKey | null = SHIFT_ORDER.find((key) => isPastMissedShift(key, date)) ?? null;
 
   const shifts: ShiftReportRow[] = SHIFT_ORDER.map((shiftKey) => {
     if (shiftKey === missedShiftKey) return { shiftKey, status: "notSubmitted" };
 
     const leadManager = INITIAL_SHIFT_REPORTS[shiftKey].managers[0];
-    const late = isLateDay && shiftKey === lateShiftKey;
-    const completedAtLabel = formatClockAndDateLabel(
-      date,
-      SHIFT_TYPICAL_COMPLETION_MINUTES[shiftKey] + (late ? LATE_COMPLETION_MINUTES : dayOfMonth % 9)
-    );
+    const completedAtLabel = formatClockAndDateLabel(date, SHIFT_TYPICAL_COMPLETION_MINUTES[shiftKey] + (dayOfMonth % 9));
     return {
       shiftKey,
       status: "completed",
@@ -152,7 +145,6 @@ function buildPastRow(date: Date): ShiftReportDayRow {
       completedByRole: leadManager.role,
       completedByAvatar: leadManager.avatar,
       completedAtLabel,
-      late,
     };
   });
   // A day with a missed shift can never be signed off (see getSignOffStatusDisplay/getShiftReportRowV2Display's
@@ -240,25 +232,13 @@ export function getDayInProgressLabel(day: ShiftReportDayRow): string | undefine
   return day.shifts.some((s) => s.status === "dueLater") ? "Day In Progress" : undefined;
 }
 
-/**
- * "Swing Report Completed Late" — flags a day whose reports are all in but one came in well past its
- * scheduled end. Surfaced at the day level (not just in the V1 accordion's per-shift row) because a
- * fully-submitted, already-signed-off day now routes straight to the Daily Report on click (see
- * dailyReportHref/opensDailyReport in EndOfShiftReportListPage) and never actually expands, so this is
- * the only place in the V1 grid a manager would see that a report ran late.
- */
-export function getLateShiftNote(day: ShiftReportDayRow): string | undefined {
-  const lateShift = day.shifts.find((s) => s.status === "completed" && s.late);
-  return lateShift ? `${SHIFT_LABELS[lateShift.shiftKey]} Report Completed Late` : undefined;
-}
-
 export type SignOffStatusTone = "success" | "warning" | "danger" | "neutral";
 export type SignOffStatusDisplay = { title: string; caption?: string; tone: SignOffStatusTone };
 
 /**
  * The day row's own "Sign-Off Status" column (Figma fileKey 0UJDRcrFiXkn16yfc2MUEW, node 229:5034) — one of
  * four states: still underway ("Pending Reports"), a manager missed a submission after the day ended
- * ("Signed Off Blocked"), every report is in but the Site Director hasn't reviewed it yet ("Pending
+ * ("Sign Off Blocked"), every report is in but the Site Director hasn't reviewed it yet ("Pending
  * Sign-Off"), or the Site Director has already signed off ("Signed Off").
  */
 export function getSignOffStatusDisplay(day: ShiftReportDayRow): SignOffStatusDisplay {
@@ -271,7 +251,7 @@ export function getSignOffStatusDisplay(day: ShiftReportDayRow): SignOffStatusDi
   const missed = day.shifts.filter((s) => s.status === "notSubmitted");
   if (missed.length > 0) {
     const label = missed.map((s) => SHIFT_LABELS[s.shiftKey]).join(", ");
-    return { title: "Signed Off Blocked", caption: `${label} Shift Report${missed.length === 1 ? "" : "s"} Incomplete`, tone: "danger" };
+    return { title: "Sign Off Blocked", caption: `${label} Shift${missed.length === 1 ? "" : "s"} Not Submitted`, tone: "danger" };
   }
 
   if (day.signedOffBySiteDirector) {
@@ -281,71 +261,3 @@ export function getSignOffStatusDisplay(day: ShiftReportDayRow): SignOffStatusDi
   return { title: "Pending Sign-Off", caption: "Awaiting Site Director", tone: "warning" };
 }
 
-/**
- * The "v2" flat data-grid layout (Figma fileKey 0UJDRcrFiXkn16yfc2MUEW, node 229:1569) — same
- * underlying day data as the accordion list above, regrouped into five columns instead of four:
- * a plain completion count, who completed each shift, the Site Director's own sign-off (their name
- * once signed, otherwise a short blocked/pending title), and a colored status tag for whatever still
- * needs attention. Unlike getSignOffStatusDisplay, the "which shifts are missing/still due" detail
- * lives on the completion count (missedCaption) and the status tag (tag/tagCaption) instead of a
- * caption under the sign-off column, matching the Figma layout's own column split.
- */
-export type ShiftReportRowV2Display = {
-  completedLabel: string;
-  missedCaption?: string;
-  completedByLabel: string;
-  signOff:
-    | { kind: "signedOff"; name: string; timestamp?: string }
-    | { kind: "title"; title: string; caption?: string; tone: SignOffStatusTone };
-  tag?: { label: string; tone: "warning" | "danger" };
-  tagCaption?: string;
-};
-
-export function getShiftReportRowV2Display(day: ShiftReportDayRow): ShiftReportRowV2Display {
-  const totalCount = day.shifts.length;
-  const completedCount = getCompletedCount(day);
-  const completedLabel = day.isFuture ? "—" : completedCount === totalCount ? "All Completed" : `${completedCount} / ${totalCount} Completed`;
-  const completedByLabel = day.shifts.map((s) => s.completedByName).filter((name): name is string => Boolean(name)).join(", ") || "—";
-
-  if (day.isFuture) {
-    return { completedLabel, completedByLabel, signOff: { kind: "title", title: "Upcoming", tone: "neutral" } };
-  }
-
-  const dueLater = day.shifts.filter((s) => s.status === "dueLater");
-  if (dueLater.length > 0) {
-    const [next, ...rest] = dueLater;
-    return {
-      completedLabel,
-      completedByLabel,
-      signOff: { kind: "title", title: "Pending Reports", caption: "Day In Progress", tone: "neutral" },
-      tag: { label: `${SHIFT_LABELS[next.shiftKey]} Shift due by ${SHIFT_END_LABEL[next.shiftKey]}`, tone: "warning" },
-      tagCaption: rest.length > 0 ? rest.map((s) => `${SHIFT_LABELS[s.shiftKey]} due by ${SHIFT_END_LABEL[s.shiftKey]}`).join(", ") : undefined,
-    };
-  }
-
-  const missed = day.shifts.filter((s) => s.status === "notSubmitted");
-  if (missed.length > 0) {
-    const label = missed.map((s) => SHIFT_LABELS[s.shiftKey]).join(", ");
-    return {
-      completedLabel,
-      missedCaption: `${label} Report Incomplete`,
-      completedByLabel,
-      signOff: { kind: "title", title: "Sign Off Blocked", tone: "danger" },
-      tag: { label: "Incomplete Reports", tone: "danger" },
-    };
-  }
-
-  const lateShift = day.shifts.find((s) => s.status === "completed" && s.late);
-  const lateTag = lateShift ? { label: `${SHIFT_LABELS[lateShift.shiftKey]} Report Completed Late`, tone: "warning" as const } : undefined;
-
-  if (day.signedOffBySiteDirector) {
-    return { completedLabel, completedByLabel, signOff: { kind: "signedOff", name: SITE_DIRECTOR.name, timestamp: day.signedOffAtLabel }, tag: lateTag };
-  }
-
-  return {
-    completedLabel,
-    completedByLabel,
-    signOff: { kind: "title", title: "Sign Off Incomplete", tone: "danger" },
-    tag: { label: "Sign-Off Incomplete", tone: "danger" },
-  };
-}

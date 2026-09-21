@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ChevronDownIcon, CircleCheckIcon, MoreHorizontalIcon } from "./icons";
+import { ChevronDownIcon, MoreHorizontalIcon } from "./icons";
 import { getTagColorLight, type ShiftNote } from "../../lib/managerShiftReportData";
 import styles from "./ShiftReportSectionCard.module.css";
 
@@ -22,8 +22,6 @@ export type ShiftReportSectionCardProps = {
   /** DOM id for this card — lets the Side Panel's own row for the same section scroll here and land at the top of the viewport. */
   id?: string;
   title: string;
-  /** Small grey line under the title — only Shift Managers uses this ("4 Managers on Shift"). */
-  subtitle?: string;
   open: boolean;
   onToggle: () => void;
   /** Omit for a section with no notes concept at all (Shift Managers) — hides the note-count/check badge and the whole Managers Notes block. */
@@ -45,7 +43,7 @@ export type ShiftReportSectionCardProps = {
  * page, not a pushed screen); Shift Managers has neither and just
  * supplies its own body as `children` with no `notes` prop.
  */
-export function ShiftReportSectionCard({ id, title, subtitle, open, onToggle, notes, children, completed }: ShiftReportSectionCardProps) {
+export function ShiftReportSectionCard({ id, title, open, onToggle, notes, children, completed }: ShiftReportSectionCardProps) {
   const noteCount = notes?.items.length ?? 0;
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
 
@@ -60,17 +58,6 @@ export function ShiftReportSectionCard({ id, title, subtitle, open, onToggle, no
           </span>
         </span>
         <span className={styles.headerRight}>
-          {/* A completed report has nothing left to track, so the in-progress "N notes added" to-do
-              badge (Figma's own finished "Shift Accordion" header shows just the title and chevron). */}
-          {notes && !completed && (
-            <>
-              <span className={[styles.noteCount, noteCount > 0 ? styles.noteCountDone : ""].filter(Boolean).join(" ")}>
-                {noteCount} note{noteCount === 1 ? "" : "s"} added
-              </span>
-              <CircleCheckIcon className={[styles.checkIcon, noteCount > 0 ? styles.checkIconDone : ""].filter(Boolean).join(" ")} />
-            </>
-          )}
-          {subtitle && <span className={styles.headerSubtitle}>{subtitle}</span>}
           <ChevronDownIcon className={[styles.chevron, open ? styles.chevronOpen : ""].filter(Boolean).join(" ")} />
         </span>
       </button>

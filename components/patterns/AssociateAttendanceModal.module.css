@@ -39,6 +39,15 @@
   color: var(--color-text-dt-blue);
 }
 
+.body[data-theme="light"] .filterButton {
+  color: var(--color-text-lt-grey);
+}
+
+.body[data-theme="light"] .filterButton[aria-pressed="true"] {
+  background-color: var(--btn-ghost-lt-primary-static);
+  color: var(--color-text-lt-blue);
+}
+
 .table {
   display: flex;
   flex-direction: column;
@@ -59,6 +68,10 @@
   font-weight: 500;
   line-height: var(--type-body-md-leading);
   color: var(--color-text-dt-grey);
+}
+
+.body[data-theme="light"] .headerCell {
+  color: var(--color-text-lt-grey);
 }
 
 .headerCell[data-col="associate"] {
@@ -94,6 +107,10 @@
   background-color: var(--wash-neutral-15);
 }
 
+.body[data-theme="light"] .hairline {
+  background-color: var(--color-neutral-300);
+}
+
 .avatar {
   width: 36px;
   height: 36px;
@@ -116,11 +133,19 @@
   color: var(--color-text-dt-default);
 }
 
+.body[data-theme="light"] .associateName {
+  color: var(--color-text-lt-default);
+}
+
 .associatePosition {
   font-family: var(--type-body-md-family);
   font-size: var(--type-body-md-size);
   line-height: var(--type-body-md-leading);
   color: var(--color-text-dt-grey);
+}
+
+.body[data-theme="light"] .associatePosition {
+  color: var(--color-text-lt-grey);
 }
 
 .statusTag {
@@ -149,12 +174,31 @@
   color: var(--color-danger-300);
 }
 
+.body[data-theme="light"] .statusTag[data-tone="success"] {
+  background-color: var(--wash-success-15);
+  color: var(--color-text-lt-success);
+}
+
+.body[data-theme="light"] .statusTag[data-tone="warning"] {
+  background-color: var(--wash-warning-15);
+  color: var(--color-text-lt-warning);
+}
+
+.body[data-theme="light"] .statusTag[data-tone="danger"] {
+  background-color: var(--wash-danger-15);
+  color: var(--color-text-lt-danger);
+}
+
 .empty {
   padding: 24px 0;
   text-align: center;
   color: var(--color-text-dt-grey);
   font-family: var(--type-body-md-family);
   font-size: var(--type-body-md-size);
+}
+
+.body[data-theme="light"] .empty {
+  color: var(--color-text-lt-grey);
 }
 
 @media (max-width: 960px) {

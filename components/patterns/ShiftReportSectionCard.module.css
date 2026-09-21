@@ -52,42 +52,12 @@
   color: var(--color-text-lt-default);
 }
 
-.headerSubtitle {
-  font-family: var(--type-body-md-family);
-  font-size: var(--type-body-md-size);
-  color: var(--color-text-lt-grey);
-  white-space: nowrap;
-}
 
 .headerRight {
   display: flex;
   align-items: center;
   gap: 16px;
   flex-shrink: 0;
-}
-
-.noteCount {
-  font-family: var(--type-body-md-family);
-  font-weight: var(--type-body-md-weight);
-  font-size: var(--type-body-md-size);
-  color: var(--color-neutral-500);
-  white-space: nowrap;
-}
-
-.noteCountDone {
-  font-family: var(--type-body-md-family);
-  font-weight: var(--type-body-md-weight);
-  font-size: var(--type-body-md-size);
-  color: var(--color-text-lt-grey);
-}
-
-.checkIcon {
-  font-size: 20px;
-  color: var(--color-neutral-500);
-}
-
-.checkIconDone {
-  color: var(--color-success-700);
 }
 
 .chevron {

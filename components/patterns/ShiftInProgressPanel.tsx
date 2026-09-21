@@ -1,7 +1,16 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { BroomWideIcon, CircleCheckIcon, ClipboardCheckIcon, ClockIcon, TriangleExclamationIcon, UserHardHatIcon, VectorSquareIcon } from "./icons";
+import {
+  BroomWideIcon,
+  CircleCheckIcon,
+  CircleExclamationIcon,
+  ClipboardCheckIcon,
+  ClockIcon,
+  TriangleExclamationIcon,
+  UserHardHatIcon,
+  VectorSquareIcon,
+} from "./icons";
 import { Button } from "../ui/Button";
 import { DonutRing } from "../ui/Charts";
 import { formatHMS, type ShiftLiveStatus } from "../../lib/managerShiftReportData";
@@ -50,6 +59,10 @@ export type ShiftInProgressPanelProps = {
   managers: ShiftInProgressPanelManager[];
   sections: ShiftInProgressPanelSection[];
   isLocked: boolean;
+  /** True for a past, already-ended shift whose report never actually came in (isPastMissedShift) —
+      shown instead of the ticking in-progress timer, since there's no live shift underway to time; still
+      unlocked underneath (a manager can submit it late), just like a shift that's still in progress. */
+  notSubmittedPastDeadline?: boolean;
   /** Who completed the report and when, in the Figma copy's own "Report Submitted by {name} at {label}" phrasing — only shown once isLocked and completedStats are both present. */
   submittedByName?: string;
   submittedAtLabel?: string;
@@ -87,6 +100,7 @@ export function ShiftInProgressPanel({
   managers,
   sections,
   isLocked,
+  notSubmittedPastDeadline = false,
   submittedByName,
   submittedAtLabel,
   completedStats,
@@ -118,6 +132,14 @@ export function ShiftInProgressPanel({
           <div className={styles.statusText}>
             <span className={styles.statusTitleCompleted}>{shiftLabel} Shift Completed</span>
             <span className={styles.shiftTimeRange}>{shiftTimeRange}</span>
+          </div>
+        ) : notSubmittedPastDeadline ? (
+          <div className={styles.statusText}>
+            <span className={styles.statusTitleCompleted}>{shiftLabel} Shift Completed</span>
+            <div className={styles.submittedRow}>
+              <CircleExclamationIcon className={styles.notSubmittedIcon} />
+              <p className={styles.notSubmittedText}>Report not submitted on time</p>
+            </div>
           </div>
         ) : (
           <>

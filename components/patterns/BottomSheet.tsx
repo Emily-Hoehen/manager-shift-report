@@ -4,10 +4,15 @@ import { useEffect, useRef, type ReactNode } from "react";
 import { XmarkIcon } from "./icons";
 import styles from "./BottomSheet.module.css";
 
+export type BottomSheetTheme = "dark" | "light";
+
 export type BottomSheetProps = {
   open: boolean;
   onClose: () => void;
   title: string;
+  /** Defaults to "dark" — the Map feature's own dark UI this sheet was originally built for. Callers on
+      a light-theme page (e.g. the desktop End of Shift Report) pass "light" instead. */
+  theme?: BottomSheetTheme;
   children: ReactNode;
 };
 
@@ -25,7 +30,7 @@ export type BottomSheetProps = {
  * reuses this gets the exact same chrome for free — only the title and
  * body content differ per caller.
  */
-export function BottomSheet({ open, onClose, title, children }: BottomSheetProps) {
+export function BottomSheet({ open, onClose, title, theme = "dark", children }: BottomSheetProps) {
   const sheetRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -46,7 +51,7 @@ export function BottomSheet({ open, onClose, title, children }: BottomSheetProps
   if (!open) return null;
 
   return (
-    <div className={styles.overlay} onClick={onClose}>
+    <div className={styles.overlay} data-theme={theme} onClick={onClose}>
       <div
         ref={sheetRef}
         className={styles.sheet}

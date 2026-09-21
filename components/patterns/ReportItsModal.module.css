@@ -31,11 +31,19 @@
   color: var(--color-text-dt-default);
 }
 
+.body[data-theme="light"] .statLabel {
+  color: var(--color-text-lt-default);
+}
+
 .statValue {
   font-family: var(--type-h2-family);
   font-size: var(--type-h2-size);
   font-weight: var(--type-h2-weight);
   color: var(--color-text-dt-default);
+}
+
+.body[data-theme="light"] .statValue {
+  color: var(--color-text-lt-default);
 }
 
 .table {
@@ -58,6 +66,10 @@
   font-weight: 500;
   line-height: var(--type-body-md-leading);
   color: var(--color-text-dt-grey);
+}
+
+.body[data-theme="light"] .headerCell {
+  color: var(--color-text-lt-grey);
 }
 
 .headerCell[data-col="associate"] {
@@ -143,6 +155,10 @@
   background-color: var(--wash-neutral-15);
 }
 
+.body[data-theme="light"] .hairline {
+  background-color: var(--color-neutral-300);
+}
+
 .avatar {
   width: 36px;
   height: 36px;
@@ -165,11 +181,19 @@
   color: var(--color-text-dt-default);
 }
 
+.body[data-theme="light"] .associateName {
+  color: var(--color-text-lt-default);
+}
+
 .associatePosition {
   font-family: var(--type-body-md-family);
   font-size: var(--type-body-md-size);
   line-height: var(--type-body-md-leading);
   color: var(--color-text-dt-grey);
+}
+
+.body[data-theme="light"] .associatePosition {
+  color: var(--color-text-lt-grey);
 }
 
 .statusStack {
@@ -185,11 +209,19 @@
   color: var(--color-text-dt-default);
 }
 
+.body[data-theme="light"] .statusAccepted {
+  color: var(--color-text-lt-default);
+}
+
 .statusWorkOrder {
   font-family: var(--type-body-md-family);
   font-size: var(--type-body-md-size);
   line-height: var(--type-body-md-leading);
   color: var(--color-warning-300);
+}
+
+.body[data-theme="light"] .statusWorkOrder {
+  color: var(--color-text-lt-warning);
 }
 
 .statusRejected {
@@ -199,11 +231,19 @@
   color: var(--color-danger-300);
 }
 
+.body[data-theme="light"] .statusRejected {
+  color: var(--color-text-lt-danger);
+}
+
 .plainText {
   font-family: var(--type-h4-family);
   font-size: var(--type-h4-size);
   font-weight: var(--type-h4-weight);
   color: var(--color-text-dt-default);
+}
+
+.body[data-theme="light"] .plainText {
+  color: var(--color-text-lt-default);
 }
 
 .viewLink {
@@ -215,12 +255,20 @@
   white-space: nowrap;
 }
 
+.body[data-theme="light"] .viewLink {
+  color: var(--color-text-lt-blue);
+}
+
 .empty {
   padding: 24px 0;
   text-align: center;
   color: var(--color-text-dt-grey);
   font-family: var(--type-body-md-family);
   font-size: var(--type-body-md-size);
+}
+
+.body[data-theme="light"] .empty {
+  color: var(--color-text-lt-grey);
 }
 
 @media (max-width: 960px) {

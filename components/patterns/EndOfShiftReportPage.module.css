@@ -201,7 +201,31 @@
 
 .reportsPendingTitle {
   font-family: var(--type-h3-family, var(--type-body-lg-family));
-  font-weight: 700;
+  font-weight: 500;
+  color: var(--color-text-lt-grey);
+}
+
+/* "Sign off overdue for the daily report" — same non-director read-only state as DailyReportPage's own
+   (Figma fileKey 0UJDRcrFiXkn16yfc2MUEW, node 326:46528). */
+.signOffOverdueGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.signOffOverdueTitle {
+  font-family: var(--type-h3-family);
+  font-size: var(--type-h3-size);
+  font-weight: var(--type-h3-weight);
+  line-height: var(--type-h3-leading);
+  color: var(--color-text-lt-grey);
+}
+
+.signOffOverdueCaption {
+  font-family: var(--type-body-md-family);
+  font-size: var(--type-body-md-size);
+  font-weight: var(--type-body-md-weight);
+  line-height: var(--type-body-md-leading);
   color: var(--color-text-lt-grey);
 }
 
@@ -326,6 +350,12 @@
   display: flex;
   flex-direction: column;
   gap: 28px;
+}
+
+.managersEmptyState {
+  font-family: var(--type-body-md-family);
+  font-size: var(--type-body-md-size);
+  color: var(--color-text-lt-grey);
 }
 
 .managerRow {
@@ -509,6 +539,30 @@
   gap: 40px;
 }
 
+/* Opens AssociateAttendanceModal (same as the Map's own Daily Report view's "Hours and Headcount"
+   row) — width/text-align reset since this is a <button>, negative margin offsets the hover padding
+   so it doesn't shift the row's own alignment. */
+.headcountRowButton {
+  width: 100%;
+  border: none;
+  background-color: transparent;
+  text-align: left;
+  padding: 12px;
+  margin: -12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 120ms ease;
+}
+
+.headcountRowButton:hover {
+  background-color: var(--color-neutral-200);
+}
+
+.headcountRowButton:focus-visible {
+  outline: 2px solid var(--color-primary-500);
+  outline-offset: 2px;
+}
+
 .headcountDivider {
   width: 1px;
   align-self: stretch;
@@ -650,6 +704,29 @@
   min-width: 200px;
 }
 
+/* Opens ReportItsModal (same as the Map's own Daily Report view's "Report Its" row) — reset since this
+   is a <button>, negative margin offsets the hover padding so it doesn't shift the row's own alignment. */
+.qualityColumnButton {
+  border: none;
+  background-color: transparent;
+  text-align: left;
+  align-items: flex-start;
+  padding: 12px;
+  margin: -12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 120ms ease;
+}
+
+.qualityColumnButton:hover {
+  background-color: var(--color-neutral-200);
+}
+
+.qualityColumnButton:focus-visible {
+  outline: 2px solid var(--color-primary-500);
+  outline-offset: 2px;
+}
+
 .qualityGroupLabel {
   font-family: var(--type-h4-family);
   font-weight: var(--type-h4-weight);
@@ -682,10 +759,10 @@
   border-radius: 4px;
   background-color: var(--color-text-lt-success);
   color: var(--color-text-lt-white);
-  font-family: var(--type-h4-family);
-  font-weight: var(--type-h4-weight);
-  font-size: var(--type-h4-size);
-  line-height: var(--type-h4-leading);
+  font-family: var(--type-h3-family);
+  font-weight: var(--type-h3-weight);
+  font-size: var(--type-h3-size);
+  line-height: var(--type-h3-leading);
 }
 
 .scoreChipText {

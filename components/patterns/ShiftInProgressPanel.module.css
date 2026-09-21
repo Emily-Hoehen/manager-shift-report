@@ -81,6 +81,20 @@
   color: var(--color-text-lt-default);
 }
 
+.notSubmittedIcon {
+  flex-shrink: 0;
+  font-size: 20px;
+  color: var(--color-text-lt-danger);
+}
+
+.notSubmittedText {
+  font-family: var(--type-body-md-family);
+  font-weight: var(--type-h4-weight);
+  font-size: var(--type-body-md-size);
+  line-height: 22px;
+  color: var(--color-text-lt-danger);
+}
+
 .statBlock {
   display: flex;
   flex-direction: column;
@@ -307,7 +321,7 @@
 }
 
 .rowCheckDone {
-  color: var(--color-success-700);
+  color: var(--color-text-lt-success);
 }
 
 .avatarStack {
