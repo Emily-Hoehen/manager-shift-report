@@ -335,8 +335,12 @@ export function EndOfShiftReportPage({ contractBuildings }: EndOfShiftReportPage
   const liveStatus = notSubmittedPastDeadline ? "ended" : now ? getShiftLiveStatus(activeShiftKey, now) : "inProgress";
   // A shift that hasn't started yet has nobody actually on it and nothing actually reported — the
   // roster/notes below are illustrative sample data seeded for once the shift gets going, not a real
-  // record of anyone having checked in or written anything yet, so both read empty until then.
-  const shiftNotStarted = liveStatus === "notStarted";
+  // record of anyone having checked in or written anything yet, so both read empty until then. Only
+  // meaningful for today's own live shift (isToday) — liveStatus is plain time-of-day math independent
+  // of the calendar date being viewed, so without this gate a past, already-completed day's Swing/
+  // Graveyard would read as "not started" too whenever real current time happens to fall before their
+  // scheduled window, wiping out that day's real seeded roster/notes.
+  const shiftNotStarted = isToday && liveStatus === "notStarted";
   const shiftTimeRange = SHIFT_OPTIONS.find((option) => option.key === activeShiftKey)?.timeRange ?? "";
   const readyToComplete = allSectionsHaveNotes(shift);
   // Only a Manager on Shift can touch this report at all, and only once this specific shift has
