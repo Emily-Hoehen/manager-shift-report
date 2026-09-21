@@ -13,6 +13,7 @@
   scroll-margin-top: 24px;
 }
 
+
 .header {
   display: flex;
   align-items: center;
@@ -36,17 +37,6 @@
   gap: 16px;
 }
 
-.iconChip {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  font-size: 20px;
-}
-
 .titleGroup {
   display: flex;
   flex: 1;
@@ -60,13 +50,6 @@
   font-weight: var(--type-h2-weight);
   font-size: var(--type-h2-size);
   color: var(--color-text-lt-default);
-}
-
-.headerCaption {
-  font-family: var(--type-body-md-family);
-  font-size: var(--type-body-md-size);
-  line-height: var(--type-body-md-leading);
-  color: var(--color-text-lt-grey);
 }
 
 .headerSubtitle {
@@ -186,6 +169,13 @@
   background-color: var(--color-neutral-200);
 }
 
+/* A completed report's own note look (Figma node 312:40335 "Note") — same Core/Neutral/200 bubble as
+   in-progress, plus a grey Core/Neutral/400 accent border. */
+.noteCard[data-completed="true"] {
+  background-color: var(--color-neutral-200);
+  border-left: 6px solid var(--color-neutral-400);
+}
+
 .noteTopRow {
   display: flex;
   align-items: center;
@@ -284,12 +274,11 @@
   gap: 8px;
 }
 
+/* background/color come from getTagColorLight per tag, not a fixed color here — see NoteCard. */
 .noteTag {
   height: 24px;
   padding: 6px 12px;
   border-radius: 4px;
-  background-color: var(--wash-primary-blue-15);
-  color: var(--color-text-lt-blue);
   font-family: var(--type-h4-family);
   font-weight: var(--type-h4-weight);
   font-size: 14px;

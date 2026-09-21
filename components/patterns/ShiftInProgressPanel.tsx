@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { CircleCheckIcon } from "./icons";
+import { BroomWideIcon, CircleCheckIcon, ClipboardCheckIcon, ClockIcon, TriangleExclamationIcon, UserHardHatIcon, VectorSquareIcon } from "./icons";
 import { Button } from "../ui/Button";
 import { DonutRing } from "../ui/Charts";
 import { formatHMS, type ShiftLiveStatus } from "../../lib/managerShiftReportData";
@@ -17,6 +17,27 @@ export type ShiftInProgressPanelSection = {
   noteCount: number;
 };
 
+/** The finished-report rollup the Side Panel shows once a shift is completed (Figma fileKey
+ * 0UJDRcrFiXkn16yfc2MUEW, node 258:26708 "Side Panel" — the "Day Shift Completed" state), in place of
+ * the in-progress note-count checklist: real captured numbers per section instead of a to-do list,
+ * same SidebarStat layout the Daily Report page's own sidebar already uses for the whole day. */
+export type ShiftCompletedStats = {
+  hours: { percent: number; captured: string; total: string; associateArrival: number; totalAbsences: number };
+  areaCoverage: {
+    percent: number;
+    serviced: number;
+    total: number;
+    notServiced: number;
+    underServiced: number;
+    fullyServiced: number;
+    overServiced: number;
+  };
+  serviceCoverage: { percent: number; completed: number; expected: number };
+  quality: { aiVerification: number; internalAudit: number; customerAudit: number };
+  safetyIssues: number;
+  reportIts: { accepted: number; submitted: number; rejected: number; acceptanceRate: number };
+};
+
 export type ShiftInProgressPanelProps = {
   /** "Day" / "Swing" / "Graveyard" — prefixes the status title ("Day Shift in Progress" / "Day Shift Completed"). */
   shiftLabel: string;
@@ -29,6 +50,11 @@ export type ShiftInProgressPanelProps = {
   managers: ShiftInProgressPanelManager[];
   sections: ShiftInProgressPanelSection[];
   isLocked: boolean;
+  /** Who completed the report and when, in the Figma copy's own "Report Submitted by {name} at {label}" phrasing — only shown once isLocked and completedStats are both present. */
+  submittedByName?: string;
+  submittedAtLabel?: string;
+  /** The finished-report numbers (see ShiftCompletedStats) — when present alongside isLocked, replaces the note-count checklist with the real rollup; omitted, the panel falls back to its old plain "{Shift} Completed" title with the checklist still showing (e.g. a shift a manager just completed from this same page, before any richer data was wired up). */
+  completedStats?: ShiftCompletedStats;
   canComplete: boolean;
   /** Hides the Complete Shift Report button and its hint entirely — for a viewer who could never take this action (Site Director, Other User), not just one who can't take it yet. Defaults to true. */
   showCompleteAction?: boolean;
@@ -61,6 +87,9 @@ export function ShiftInProgressPanel({
   managers,
   sections,
   isLocked,
+  submittedByName,
+  submittedAtLabel,
+  completedStats,
   canComplete,
   showCompleteAction = true,
   onCompleteClick,
@@ -68,11 +97,24 @@ export function ShiftInProgressPanel({
 }: ShiftInProgressPanelProps) {
   const notStarted = liveStatus === "notStarted";
   const [hh, mm, ss] = formatHMS(notStarted ? 0 : elapsedSeconds).split(":");
+  const showCompletedRollup = isLocked && Boolean(completedStats);
 
   return (
     <div className={styles.panel}>
       <div className={styles.topRow}>
-        {isLocked ? (
+        {showCompletedRollup ? (
+          <div className={styles.statusText}>
+            <span className={styles.statusTitleCompleted}>{shiftLabel} Shift Completed</span>
+            <div className={styles.submittedRow}>
+              <CircleCheckIcon className={styles.submittedIcon} />
+              <p className={styles.submittedText}>
+                Report Submitted by {submittedByName}
+                <br />
+                at {submittedAtLabel}
+              </p>
+            </div>
+          </div>
+        ) : isLocked ? (
           <div className={styles.statusText}>
             <span className={styles.statusTitleCompleted}>{shiftLabel} Shift Completed</span>
             <span className={styles.shiftTimeRange}>{shiftTimeRange}</span>
@@ -114,28 +156,33 @@ export function ShiftInProgressPanel({
         </div>
       </button>
 
-      {sections.map((section) => (
-        <div key={section.key} className={styles.sectionBlock}>
-          <div className={styles.divider} />
-          <button type="button" className={styles.row} onClick={() => onSelectSection(section.key)}>
-            <span className={styles.rowIcon} style={{ color: section.iconColor }}>
-              {section.icon}
-            </span>
-            <div className={styles.rowText}>
-              <span className={styles.rowTitle}>{section.title}</span>
-              <span className={styles.rowCaption}>
-                {section.noteCount} note{section.noteCount === 1 ? "" : "s"} added
+      {showCompletedRollup && completedStats ? (
+        <CompletedStatsRollup stats={completedStats} onSelectSection={onSelectSection} />
+      ) : (
+        sections.map((section) => (
+          <div key={section.key} className={styles.sectionBlock}>
+            <div className={styles.divider} />
+            <button type="button" className={styles.row} onClick={() => onSelectSection(section.key)}>
+              <span className={styles.rowIcon} style={{ color: section.iconColor }}>
+                {section.icon}
               </span>
-            </div>
-            <CircleCheckIcon className={[styles.rowCheck, section.noteCount > 0 ? styles.rowCheckDone : ""].filter(Boolean).join(" ")} />
-          </button>
-        </div>
-      ))}
+              <div className={styles.rowText}>
+                <span className={styles.rowTitle}>{section.title}</span>
+                <span className={styles.rowCaption}>
+                  {section.noteCount} note{section.noteCount === 1 ? "" : "s"} added
+                </span>
+              </div>
+              <CircleCheckIcon className={[styles.rowCheck, section.noteCount > 0 ? styles.rowCheckDone : ""].filter(Boolean).join(" ")} />
+            </button>
+          </div>
+        ))
+      )}
 
-      <div className={styles.divider} />
+      {/* A submitted report is done — no hint, no button, no trailing line either (the completed
+          rollup ends right after Report Its Accepted). Only an in-progress shift still shows this. */}
+      {!showCompletedRollup && <div className={styles.divider} />}
 
-      {/* Always reachable, even once already completed — a manager can keep adding notes and re-complete the report from here. */}
-      {showCompleteAction && (
+      {showCompleteAction && !showCompletedRollup && (
         <>
           {!canComplete && <p className={styles.hint}>Shift report can only be completed once a shift has ended and all sections have at least one note added</p>}
           <Button variant="primary" theme="light" disabled={!canComplete} onClick={onCompleteClick} className={styles.completeButton}>
@@ -144,5 +191,161 @@ export function ShiftInProgressPanel({
         </>
       )}
     </div>
+  );
+}
+
+/** The Side Panel's own read-only stat rollup for a completed shift (see ShiftCompletedStats) — same
+ * icon/value/label/caption/sub-row shape as the Daily Report page's own SidebarStat, just scoped to
+ * one shift's numbers instead of the whole day's. Every block is clickable, same as the in-progress
+ * checklist rows above — Safety issues and Report Its Accepted both jump to "quality" since that's
+ * the one left-column card (QualityData) that actually holds all three (scores, safety, report its). */
+function CompletedStatsRollup({ stats, onSelectSection }: { stats: ShiftCompletedStats; onSelectSection: (key: string) => void }) {
+  const qualityAverage = ((stats.quality.aiVerification + stats.quality.internalAudit + stats.quality.customerAudit) / 3).toFixed(2);
+
+  return (
+    <>
+      <div className={styles.divider} />
+      <SidebarStatBlock
+        icon={<ClockIcon />}
+        iconClassName={styles.statIconYellow}
+        value={`${stats.hours.percent}%`}
+        label="Hours Captured"
+        onClick={() => onSelectSection("hoursHeadcount")}
+      >
+        <p className={styles.statCaption}>
+          {stats.hours.captured} of {stats.hours.total} shift time
+        </p>
+        <div className={styles.statSubRow}>
+          <span>Associate Arrival</span>
+          <span>{stats.hours.associateArrival}</span>
+        </div>
+        <div className={styles.statSubRow}>
+          <span>Total Absences</span>
+          <span>{stats.hours.totalAbsences}</span>
+        </div>
+      </SidebarStatBlock>
+
+      <div className={styles.divider} />
+      <SidebarStatBlock
+        icon={<VectorSquareIcon />}
+        iconClassName={styles.statIconBlue}
+        value={`${stats.areaCoverage.percent}%`}
+        label="Areas Serviced"
+        onClick={() => onSelectSection("areaCoverage")}
+      >
+        <p className={styles.statCaption}>
+          {stats.areaCoverage.serviced.toLocaleString()} of {stats.areaCoverage.total.toLocaleString()} total areas
+        </p>
+        <div className={styles.statSubRow}>
+          <span>Not Serviced</span>
+          <span>{stats.areaCoverage.notServiced}</span>
+        </div>
+        <div className={styles.statSubRow}>
+          <span>Under Serviced</span>
+          <span>{stats.areaCoverage.underServiced}</span>
+        </div>
+        <div className={styles.statSubRow}>
+          <span>Full Serviced</span>
+          <span>{stats.areaCoverage.fullyServiced}</span>
+        </div>
+        <div className={styles.statSubRow}>
+          <span>Over Serviced</span>
+          <span>{stats.areaCoverage.overServiced}</span>
+        </div>
+      </SidebarStatBlock>
+
+      <div className={styles.divider} />
+      <SidebarStatBlock
+        icon={<BroomWideIcon />}
+        iconClassName={styles.statIconPurple}
+        value={`${stats.serviceCoverage.percent}%`}
+        label="Service Coverage"
+        onClick={() => onSelectSection("serviceCoverage")}
+      >
+        <p className={styles.statCaption}>
+          {stats.serviceCoverage.completed.toLocaleString()} of {stats.serviceCoverage.expected.toLocaleString()} services completed
+        </p>
+      </SidebarStatBlock>
+
+      <div className={styles.divider} />
+      <SidebarStatBlock
+        icon={<ClipboardCheckIcon />}
+        iconClassName={styles.statIconGreen}
+        value={qualityAverage}
+        label="Verification Score"
+        onClick={() => onSelectSection("quality")}
+      >
+        <div className={styles.statValueRow}>
+          <span className={styles.statValue}>{stats.quality.internalAudit.toFixed(2)}</span>
+          <span className={styles.statLabelMuted}>Internal Audit</span>
+        </div>
+        <div className={styles.statValueRow}>
+          <span className={styles.statValue}>{stats.quality.customerAudit.toFixed(2)}</span>
+          <span className={styles.statLabelMuted}>Customer Audit</span>
+        </div>
+      </SidebarStatBlock>
+
+      <SidebarStatBlock
+        icon={<UserHardHatIcon />}
+        iconClassName={styles.statIconOrange}
+        value={stats.safetyIssues.toLocaleString()}
+        label="Safety issues"
+        onClick={() => onSelectSection("quality")}
+      />
+
+      {/* No divider here — Safety and Report Its both read as part of the same Quality section, not
+          two separate ones. */}
+      <SidebarStatBlock
+        icon={<TriangleExclamationIcon />}
+        iconClassName={styles.statIconPink}
+        value={stats.reportIts.accepted.toLocaleString()}
+        label="Report Its Accepted"
+        onClick={() => onSelectSection("quality")}
+      >
+        <div className={styles.statSubRow}>
+          <span>Submitted</span>
+          <span>{stats.reportIts.submitted}</span>
+        </div>
+        <div className={styles.statSubRow}>
+          <span>Rejected</span>
+          <span>{stats.reportIts.rejected}</span>
+        </div>
+        <div className={styles.statSubRow}>
+          <span>Acceptance Rate</span>
+          <span>{stats.reportIts.acceptanceRate}%</span>
+        </div>
+      </SidebarStatBlock>
+    </>
+  );
+}
+
+function SidebarStatBlock({
+  icon,
+  iconClassName,
+  value,
+  label,
+  children,
+  onClick,
+}: {
+  icon: ReactNode;
+  iconClassName?: string;
+  value: string;
+  label: string;
+  children?: ReactNode;
+  /** Jumps the left column to this stat's own section card (same as the in-progress checklist rows
+      above) — every completed stat block is clickable, not just read-only. */
+  onClick?: () => void;
+}) {
+  return (
+    <button type="button" className={styles.statBlock} onClick={onClick}>
+      <div className={styles.statHeaderRow}>
+        <span className={[styles.rowIconStatic, iconClassName].filter(Boolean).join(" ")}>{icon}</span>
+        <div className={styles.statValueRow}>
+          <span className={styles.statValue}>{value}</span>
+          <span className={styles.statLabel}>{label}</span>
+        </div>
+      </div>
+      {children && <div className={styles.statBody}>{children}</div>}
+    </button>
   );
 }

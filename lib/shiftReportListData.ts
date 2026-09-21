@@ -80,8 +80,8 @@ export function formatSignOffNowLabel(): string {
 /** Roughly when a manager typically wraps up each shift's report — a few minutes past that shift's own scheduled end (SHIFT_END_LABEL). Only used to invent a plausible completedAtLabel for a past day's illustrative pattern (buildPastRow); today's own row uses the report's real completedAt instead. */
 const SHIFT_TYPICAL_COMPLETION_MINUTES: Record<ShiftKey, number> = { day: 14 * 60 + 32, swing: 22 * 60 + 4, graveyard: 6 * 60 + 7 };
 
-/** Roughly when the Site Director reviews and signs off a day's reports — the following morning, once Graveyard's own report is finally in. Only used to invent a plausible signedOffAtLabel for a past day's illustrative pattern. */
-const SITE_DIRECTOR_SIGNOFF_MINUTES = 8 * 60 + 15;
+/** Roughly when the Site Director reviews and signs off a day's reports — the following morning, once Graveyard's own report is finally in. Same 7:30-8:00 AM window every day's sign-off falls in (see buildSignOffLabel in lib/mapPageData.ts, so the two pages' own illustrative sign-off times never disagree); only used to invent a plausible signedOffAtLabel for a past day's illustrative pattern. */
+const SITE_DIRECTOR_SIGNOFF_MINUTES = 7 * 60 + 30;
 
 /** Today's row reads the real EndOfShiftReportPage state — completed shifts show that shift's own completedBy, an ended-but-uncompleted shift reads "notSubmitted", and anything not yet ended shows "dueLater" against its own scheduled end time (SHIFT_END_LABEL). The Site Director signs off the whole day at once, so today's own day-level sign-off is always false — there's no point in the day where every shift is both submitted and already reviewed. */
 function buildTodayRow(date: Date, now: Date): ShiftReportDayRow {
@@ -111,23 +111,34 @@ function buildTodayRow(date: Date, now: Date): ShiftReportDayRow {
 /** How much later than usual (SHIFT_TYPICAL_COMPLETION_MINUTES) a "late" illustrative shift report comes in — well past its scheduled end (SHIFT_END_LABEL) but still same-day. */
 const LATE_COMPLETION_MINUTES = 95;
 
+/** Two illustrative past days (day-of-month) that never got their Graveyard report in — everything
+ * else in the month is fully submitted (see buildPastRow). Gives the grid a real "Signed Off
+ * Blocked"/overdue example to look at, and — since a day with a missed shift routes straight to that
+ * shift's own report instead of the Daily Report (see opensDailyReport/EndOfShiftReportListPage) — a
+ * real example of a past shift report that's still open for notes instead of locked read-only. */
+const OVERDUE_DAYS_OF_MONTH = [3, 17];
+
 /**
  * Every past day gets a stable, non-random illustrative pattern (day-of-month, not a live record) rather than
  * a real submission history — this list has no backend to read a month of history from, so every day but
  * today is flavor data, same convention as this feature's other static samples. Only today's own row (see
- * buildTodayRow) can show a shift still in progress or not yet submitted — every past day's shifts are always
- * fully submitted. Every 7th day, Swing's own report is flagged as having come in late (still fully
- * completed — sign-off is never blocked by lateness, just today's still-open shift or a missed one) so the
- * grid has a real example of an overdue-but-completed report, attributed to Swing's own lead, whose role is
- * literally "Shift Manager" (INITIAL_SHIFT_REPORTS.swing.managers[0]). Sign-off itself follows its own,
- * separate every-6th-day pattern below.
+ * buildTodayRow) can show a shift still in progress; OVERDUE_DAYS_OF_MONTH are the only past days with a
+ * shift not yet submitted — every other past day's shifts are fully submitted. Every 7th day, Swing's own
+ * report is flagged as having come in late (still fully completed — sign-off is never blocked by lateness,
+ * just today's still-open shift or a missed one) so the grid has a real example of an overdue-but-completed
+ * report, attributed to Swing's own lead, whose role is literally "Shift Manager"
+ * (INITIAL_SHIFT_REPORTS.swing.managers[0]). Sign-off itself follows its own, separate every-6th-day pattern
+ * below.
  */
 function buildPastRow(date: Date): ShiftReportDayRow {
   const dayOfMonth = date.getDate();
   const lateShiftKey: ShiftKey = "swing";
   const isLateDay = dayOfMonth % 7 === 0;
+  const missedShiftKey: ShiftKey | null = OVERDUE_DAYS_OF_MONTH.includes(dayOfMonth) ? "graveyard" : null;
 
   const shifts: ShiftReportRow[] = SHIFT_ORDER.map((shiftKey) => {
+    if (shiftKey === missedShiftKey) return { shiftKey, status: "notSubmitted" };
+
     const leadManager = INITIAL_SHIFT_REPORTS[shiftKey].managers[0];
     const late = isLateDay && shiftKey === lateShiftKey;
     const completedAtLabel = formatClockAndDateLabel(
@@ -144,7 +155,10 @@ function buildPastRow(date: Date): ShiftReportDayRow {
       late,
     };
   });
-  const signedOffBySiteDirector = dayOfMonth % 6 !== 0;
+  // A day with a missed shift can never be signed off (see getSignOffStatusDisplay/getShiftReportRowV2Display's
+  // own "notSubmitted" branches, checked before signedOffBySiteDirector) — forced false here just keeps this
+  // row internally consistent rather than relying on that ordering alone.
+  const signedOffBySiteDirector = missedShiftKey === null && dayOfMonth % 6 !== 0;
   const signedOffAtLabel = signedOffBySiteDirector
     ? formatClockAndDateLabel(new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1), SITE_DIRECTOR_SIGNOFF_MINUTES + (dayOfMonth % 10))
     : undefined;
@@ -191,6 +205,24 @@ export function sortDaysCurrentFirst(days: ShiftReportDayRow[], now: Date): Shif
 /** "Thursday, September 17" — a day row's own date heading (no year; the month filter already states it). */
 export function getDayRowDateLabel(date: Date): string {
   return date.toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" });
+}
+
+/** Round-trips a day row's own date through a `?date=` URL param (see dailyReportHref and the Daily
+ * Report/End of Shift Report pages it links to) — plain `toISOString()` would shift the day backward
+ * for any timezone west of UTC, since it converts to UTC first; this keeps the same calendar day the
+ * list itself is showing, both encoding and decoding in local time. */
+export function formatDateParam(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+export function parseDateParam(value: string | null): Date | null {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(year, month - 1, day);
+  return Number.isNaN(date.getTime()) ? null : date;
 }
 
 export function getCompletedCount(day: ShiftReportDayRow): number {

@@ -21,15 +21,22 @@
 .main {
   max-width: 1440px;
   margin: 0 auto;
-  padding: 32px;
+  padding: 32px 0;
   display: flex;
   flex-direction: column;
-  gap: 24px;
 }
 
-/* ---------------- Header: breadcrumb + date picker ---------------- */
+/* ---------------- Header: big date + date picker ---------------- */
 
-.header {
+/* gap matches DailyReportPage's own .headerBlock exactly, so the big date sits at the same spot on
+   both pages instead of shifting when navigating between them. */
+.headerBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+
+.headerTopRow {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -55,6 +62,181 @@
 }
 
 .breadcrumbCurrent {
+  color: var(--color-text-lt-default);
+}
+
+.bigDate {
+  font-family: var(--type-data-point-family);
+  font-size: var(--type-data-point-size);
+  font-weight: var(--type-data-point-weight);
+  line-height: var(--type-data-point-leading);
+  color: var(--color-text-lt-default);
+}
+
+/* ---------------- Site Director note (same card as DailyReportPage's own .dailySummaryCard) ---------------- */
+
+.directorNoteCard {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  padding: 20px;
+  border-radius: 8px;
+  border-left: 5px solid var(--color-neutral-400);
+  background-color: var(--color-neutral-100);
+  box-shadow: var(--shadow-lt-card);
+  /* Gap from the date above (see DailyReportPage.module.css's own .headerBlock margin-bottom). */
+  margin-top: 16px;
+}
+
+.directorNoteText {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-family: var(--type-body-lg-family);
+  font-size: var(--type-body-lg-size);
+  font-weight: var(--type-body-lg-weight);
+  line-height: var(--type-body-lg-leading);
+  color: var(--color-text-lt-default);
+}
+
+.directorNotePersonRow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.directorNoteAvatar {
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+  border-radius: 100px;
+  object-fit: cover;
+}
+
+.directorNoteInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.directorNoteNameRow {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.directorNoteName {
+  font-family: var(--type-body-md-family);
+  font-size: var(--type-body-lg-size);
+  font-weight: 500;
+  color: var(--color-text-lt-default);
+}
+
+.directorNotePosition {
+  font-family: var(--type-body-md-family);
+  font-size: 1rem;
+  font-weight: 400;
+  color: var(--color-text-lt-grey);
+}
+
+.directorNoteComplete {
+  font-family: var(--type-body-sm-family);
+  font-size: var(--type-body-lg-size);
+  color: var(--color-text-lt-success);
+}
+
+/* "Sign Off on Day" — same as DailyReportPage's own .signOffFormGroup/.signOffHeading/.signOffNoteInput
+   (Figma fileKey 0UJDRcrFiXkn16yfc2MUEW, node 323:45878). */
+.signOffFormGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+.signOffHeading {
+  font-family: var(--type-h4-family);
+  font-size: 16px;
+  font-weight: var(--type-h4-weight);
+  line-height: 22px;
+  color: var(--color-text-lt-default);
+}
+
+.signOffNoteInput {
+  width: 100%;
+  height: 100px;
+  padding: 18px 16px;
+  border: 1px solid var(--color-neutral-400);
+  border-radius: 4px;
+  background-color: var(--color-neutral-200);
+  color: var(--color-text-lt-default);
+  font-family: var(--type-body-md-family);
+  font-size: 16px;
+  line-height: var(--type-body-md-leading);
+  resize: none;
+}
+
+.signOffNoteInput::placeholder {
+  color: var(--color-neutral-500);
+  font-size: 16px;
+}
+
+/* "Shift Reports Pending" — same as DailyReportPage's own .reportsPendingGroup/.reportsPendingTitle,
+   a tighter gap to its own subcopy than .directorNoteText's general 12px paragraph spacing. */
+.reportsPendingGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-family: var(--type-body-lg-family);
+  font-size: var(--type-body-lg-size);
+  font-weight: var(--type-body-lg-weight);
+  line-height: var(--type-body-lg-leading);
+  color: var(--color-text-lt-default);
+}
+
+.reportsPendingTitle {
+  font-family: var(--type-h3-family, var(--type-body-lg-family));
+  font-weight: 700;
+  color: var(--color-text-lt-grey);
+}
+
+/* ---------------- Back button (below the date, "< Day Shift") ---------------- */
+
+.backLink {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+}
+
+/* Round white button with a blue chevron (Figma fileKey 0UJDRcrFiXkn16yfc2MUEW, node 265:30215). */
+.backLinkIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  background-color: var(--color-neutral-100);
+  box-shadow: var(--shadow-lt-card);
+  color: var(--color-text-lt-blue);
+  font-size: 14px;
+}
+
+.backLink:hover .backLinkIcon {
+  background-color: var(--color-neutral-200);
+}
+
+.backLinkText {
+  font-family: var(--type-h1-family);
+  font-weight: var(--type-h1-weight);
+  font-size: var(--type-h1-size);
   color: var(--color-text-lt-default);
 }
 
@@ -92,7 +274,7 @@
   white-space: nowrap;
 }
 
-/* ---------------- Rollup: title + Complete action ---------------- */
+/* ---------------- Rollup: back button + shift toggle, same row ---------------- */
 
 .rollup {
   display: flex;
@@ -100,63 +282,8 @@
   justify-content: space-between;
   gap: 24px;
   flex-wrap: wrap;
-}
-
-.rollupTitleGroup {
-  display: flex;
-  align-items: center;
-  gap: 24px;
-  flex-wrap: wrap;
-}
-
-.rollupTitleStack {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.rollupTitle {
-  font-family: var(--type-h1-family);
-  font-weight: var(--type-h1-weight);
-  font-size: var(--type-h1-size);
-  color: var(--color-text-lt-default);
-}
-
-.rollupDate {
-  font-family: var(--type-h4-family);
-  font-weight: var(--type-h4-weight);
-  font-size: var(--type-h4-size);
-  color: var(--color-text-lt-grey);
-}
-
-.completedBadge {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-shrink: 0;
-}
-
-.completedBadgeIcon {
-  font-size: 24px;
-  color: var(--color-text-lt-success);
-}
-
-.completedBadgeText {
-  display: flex;
-  flex-direction: column;
-}
-
-.completedBadgeTitle {
-  font-family: var(--type-h4-family);
-  font-weight: var(--type-h4-weight);
-  font-size: 14px;
-  color: var(--color-text-lt-default);
-}
-
-.completedBadgeCaption {
-  font-family: var(--type-body-sm-family);
-  font-size: var(--type-body-sm-size);
-  color: var(--color-text-lt-grey);
+  /* Gap from the Site Director note above. */
+  margin-top: 32px;
 }
 
 /* ---------------- Complete confirmation modal ---------------- */
@@ -180,6 +307,9 @@
   display: flex;
   align-items: flex-start;
   gap: 32px;
+  /* Gap from the rollup row above, same as before .main's own flex gap was replaced by explicit
+     per-child margins (see .directorNoteCard/.rollup). */
+  margin-top: 24px;
 }
 
 .leftColumn {
@@ -257,6 +387,12 @@
   gap: 4px;
 }
 
+/* Extra breathing room after the vertical divider specifically — .managerRow's own 24px gap reads as
+   too tight between the line and "Checked In" here. */
+.managerTimeColFirst {
+  margin-left: 16px;
+}
+
 .managerTimeValue {
   font-family: var(--type-h3-family);
   font-weight: var(--type-h3-weight);
@@ -283,17 +419,6 @@
 .dataGroup {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-}
-
-.dataBox {
-  padding: 20px 24px;
-  border-radius: 8px;
-  background-color: var(--color-neutral-200);
-}
-
-.dualBoxRow {
-  display: flex;
   gap: 16px;
 }
 

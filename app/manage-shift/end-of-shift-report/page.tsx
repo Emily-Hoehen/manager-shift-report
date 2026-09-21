@@ -1,10 +1,12 @@
 import { Suspense } from "react";
 import { EndOfShiftReportPage } from "../../../components/patterns/EndOfShiftReportPage";
+import { loadContractBuildings } from "../../../lib/sowContractLoader";
 
-export default function ManageShiftEndOfShiftReportPage() {
+export default async function ManageShiftEndOfShiftReportPage() {
+  const contractBuildings = await loadContractBuildings();
   return (
     <Suspense>
-      <EndOfShiftReportPage />
+      <EndOfShiftReportPage contractBuildings={contractBuildings} />
     </Suspense>
   );
 }

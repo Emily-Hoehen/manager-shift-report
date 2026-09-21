@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ChevronDownIcon, CircleCheckIcon, MoreHorizontalIcon } from "./icons";
-import type { ShiftNote } from "../../lib/managerShiftReportData";
+import { getTagColorLight, type ShiftNote } from "../../lib/managerShiftReportData";
 import styles from "./ShiftReportSectionCard.module.css";
 
 export type ShiftReportNoteAuthor = { name: string; avatar: string };
@@ -24,19 +24,14 @@ export type ShiftReportSectionCardProps = {
   title: string;
   /** Small grey line under the title — only Shift Managers uses this ("4 Managers on Shift"). */
   subtitle?: string;
-  /** A one-line data summary stacked directly under the title, inside titleGroup (Figma node 214:43034's "93% Hours Captured | 44 Associates Arrived") — distinct from `subtitle`, which sits right-aligned next to the chevron instead. */
-  headerCaption?: string;
-  /** Leading icon chip next to the title — same icon/color as this section's own row in the Side Panel. Omitted for Shift Managers, which has no Side Panel icon of its own. */
-  icon?: ReactNode;
-  iconColor?: string;
-  /** The icon's own hue at a light wash, behind the icon glyph (Figma node 216:43750) — not the sidebar's plain-glyph treatment. */
-  iconBackground?: string;
   open: boolean;
   onToggle: () => void;
   /** Omit for a section with no notes concept at all (Shift Managers) — hides the note-count/check badge and the whole Managers Notes block. */
   notes?: ShiftReportSectionNotesConfig;
   /** Captured-data body, rendered above the Managers Notes block when present. */
   children?: ReactNode;
+  /** The shift this card belongs to is already completed and submitted (Figma fileKey 0UJDRcrFiXkn16yfc2MUEW, node 258:25986 "Shift Report / Shift Complete / Report Submitted") — drops the card's own shadow, drops the in-progress "N notes added" checklist badge (nothing left to track), and gives each note its own grey accent-bordered card instead of the plain grey composer-adjacent look. */
+  completed?: boolean;
 };
 
 /**
@@ -50,28 +45,24 @@ export type ShiftReportSectionCardProps = {
  * page, not a pushed screen); Shift Managers has neither and just
  * supplies its own body as `children` with no `notes` prop.
  */
-export function ShiftReportSectionCard({ id, title, subtitle, headerCaption, icon, iconColor, iconBackground, open, onToggle, notes, children }: ShiftReportSectionCardProps) {
+export function ShiftReportSectionCard({ id, title, subtitle, open, onToggle, notes, children, completed }: ShiftReportSectionCardProps) {
   const noteCount = notes?.items.length ?? 0;
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
 
   const editingNote = notes?.items.find((n) => n.id === editingNoteId) ?? null;
 
   return (
-    <section id={id} className={styles.card}>
+    <section id={id} className={styles.card} data-completed={completed || undefined}>
       <button type="button" className={styles.header} aria-expanded={open} onClick={onToggle}>
         <span className={styles.titleRow}>
-          {icon && (
-            <span className={styles.iconChip} style={{ backgroundColor: iconBackground, color: iconColor }}>
-              {icon}
-            </span>
-          )}
           <span className={styles.titleGroup}>
             <span className={styles.title}>{title}</span>
-            {headerCaption && <span className={styles.headerCaption}>{headerCaption}</span>}
           </span>
         </span>
         <span className={styles.headerRight}>
-          {notes && (
+          {/* A completed report has nothing left to track, so the in-progress "N notes added" to-do
+              badge (Figma's own finished "Shift Accordion" header shows just the title and chevron). */}
+          {notes && !completed && (
             <>
               <span className={[styles.noteCount, noteCount > 0 ? styles.noteCountDone : ""].filter(Boolean).join(" ")}>
                 {noteCount} note{noteCount === 1 ? "" : "s"} added
@@ -109,6 +100,7 @@ export function ShiftReportSectionCard({ id, title, subtitle, headerCaption, ico
                         note={note}
                         author={notes.getAuthor(note.managerId)}
                         canManage={!notes.isLocked && note.managerId === notes.currentManagerId}
+                        completed={completed}
                         onEdit={() => setEditingNoteId(note.id)}
                         onDelete={() => {
                           if (editingNoteId === note.id) setEditingNoteId(null);
@@ -149,12 +141,14 @@ function NoteCard({
   note,
   author,
   canManage,
+  completed,
   onEdit,
   onDelete,
 }: {
   note: ShiftNote;
   author?: ShiftReportNoteAuthor;
   canManage: boolean;
+  completed?: boolean;
   onEdit: () => void;
   onDelete: () => void;
 }) {
@@ -171,7 +165,7 @@ function NoteCard({
   }, [menuOpen]);
 
   return (
-    <div className={styles.noteCard}>
+    <div className={styles.noteCard} data-completed={completed || undefined}>
       <div className={styles.noteTopRow}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={author?.avatar ?? ""} alt="" className={styles.noteAvatar} />
@@ -214,11 +208,14 @@ function NoteCard({
       <p className={styles.noteText}>{note.text}</p>
       {note.tags.length > 0 && (
         <div className={styles.noteTagRow}>
-          {note.tags.map((tag) => (
-            <span key={tag} className={styles.noteTag}>
-              {tag}
-            </span>
-          ))}
+          {note.tags.map((tag) => {
+            const { wash, color } = getTagColorLight(tag);
+            return (
+              <span key={tag} className={styles.noteTag} style={{ backgroundColor: wash, color }}>
+                {tag}
+              </span>
+            );
+          })}
         </div>
       )}
     </div>

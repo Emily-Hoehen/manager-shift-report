@@ -25,6 +25,7 @@ import { VIEWER_ROLE_LABELS, parseViewerRole, type ViewerRole } from "../../lib/
 import {
   SITE_DIRECTOR,
   buildShiftReportMonth,
+  formatDateParam,
   getDayInProgressLabel,
   getDayRowDateLabel,
   getLateShiftNote,
@@ -46,17 +47,17 @@ function opensDailyReport(day: ShiftReportDayRow): boolean {
   return day.signedOffBySiteDirector || canSignOffDay(day) || day.isToday;
 }
 
-/** The Daily Report link for a day that opens it (see opensDailyReport) — an already-signed-off day carries its own signedOffAtLabel along as a query param, so the Daily Report page opens already showing that same signed-off state instead of contradicting the list with its own "Sign Off Day" action. Today carries a `today=1` marker instead, so the Daily Report reads each shift's own live status rather than always showing the same illustrative "completed" sample it uses for every other day (this prototype has no per-day report history — see DailyReportPage). `viewerRole` (see ViewerRole) rides along as `as=` so the Daily Report and, from there, a shift's own page (End of Shift Report) know whether to show the Sign Off/note-editing UI at all. */
+/** The Daily Report link for a day that opens it (see opensDailyReport) — an already-signed-off day carries its own signedOffAtLabel along as a query param, so the Daily Report page opens already showing that same signed-off state instead of contradicting the list with its own "Sign Off Day" action. Today carries a `today=1` marker instead, so the Daily Report reads each shift's own live status rather than always showing the same illustrative "completed" sample it uses for every other day (this prototype has no per-day report history — see DailyReportPage). `date` (see formatDateParam) always rides along too, so the Daily Report's own big date heading — and, from there, a shift's own End of Shift Report page — shows the same calendar day this row does, instead of both always defaulting to the same fixed sample date. `viewerRole` (see ViewerRole) rides along as `as=` so the Daily Report and, from there, a shift's own page (End of Shift Report) know whether to show the Sign Off/note-editing UI at all. */
 function dailyReportHref(day: ShiftReportDayRow, viewerRole: ViewerRole): string {
   const params = new URLSearchParams();
+  params.set("date", formatDateParam(day.date));
   if (day.signedOffBySiteDirector) {
     params.set("signedOff", "1");
     if (day.signedOffAtLabel) params.set("at", day.signedOffAtLabel);
   }
   if (day.isToday) params.set("today", "1");
   if (viewerRole !== "director") params.set("as", viewerRole);
-  const query = params.toString();
-  return query ? `/manage-shift/daily-report?${query}` : "/manage-shift/daily-report";
+  return `/manage-shift/daily-report?${params.toString()}`;
 }
 
 type GridVersion = "v1" | "v2";
@@ -401,7 +402,11 @@ function DayRowV2({ day, viewerRole }: { day: ShiftReportDayRow; viewerRole: Vie
   // Every non-future day opens the consolidated Daily Report (so the Site Director can review every
   // shift's own data there before signing off — that's the only place sign-off actually happens, not
   // this list), including today, which reads each shift's own live status there (see opensDailyReport).
-  const href = opensDailyReport(day) ? dailyReportHref(day, viewerRole) : "/manage-shift/end-of-shift-report";
+  // A day that skips the Daily Report (e.g. "Signed Off Blocked") still carries its own date/persona
+  // along to the End of Shift Report directly, same as dailyReportHref does.
+  const href = opensDailyReport(day)
+    ? dailyReportHref(day, viewerRole)
+    : `/manage-shift/end-of-shift-report?date=${formatDateParam(day.date)}${viewerRole !== "director" ? `&as=${viewerRole}` : ""}`;
 
   return (
     <Link href={href} className={rowClassName}>

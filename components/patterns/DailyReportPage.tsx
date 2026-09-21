@@ -6,12 +6,12 @@ import { useSearchParams } from "next/navigation";
 import { Nav } from "./Nav";
 import { ManagerQueuePanel } from "./ManagerQueuePanel";
 import {
-  ArrowRightIcon,
   BellIcon,
   BriefcaseIcon,
   BroomWideIcon,
   CaretLeftIcon,
   CaretRightIcon,
+  ChevronRightIcon,
   CircleCheckIcon,
   ClipboardCheckIcon,
   ClipboardIcon,
@@ -25,12 +25,11 @@ import {
   VectorSquareIcon,
 } from "./icons";
 import { Button } from "../ui/Button";
-import { Modal } from "../ui/Modal";
 import { formatMinutesToHoursLabel, parseHoursLabelToMinutes } from "./FullShiftReportModal";
 import { buildDailyReport, type QualityScore } from "../../lib/mapPageData";
 import { buildShiftReport, type ShiftReport } from "../../lib/mapShiftReportData";
 import { computeDailyAreaCoverageBreakdown } from "../../lib/mapAreaServiceData";
-import { formatSignOffNowLabel, SHIFT_ORDER } from "../../lib/shiftReportListData";
+import { formatDateParam, formatSignOffNowLabel, parseDateParam, SHIFT_ORDER } from "../../lib/shiftReportListData";
 import {
   INITIAL_SHIFT_REPORTS,
   SHIFT_LABELS,
@@ -114,10 +113,13 @@ export function DailyReportPage({ contractBuildings }: DailyReportPageProps) {
     return () => clearInterval(interval);
   }, [isToday]);
 
-  // The header's own date picker (Figma fileKey 0UJDRcrFiXkn16yfc2MUEW, node 265:34511) — this
-  // prototype has no per-day report data beyond the one ANCHOR_DATE sample (see the file header
-  // comment), so stepping the picker only moves the big date heading itself, not the content below it.
-  const [viewDate, setViewDate] = useState(ANCHOR_DATE);
+  // The header's own date picker (Figma fileKey 0UJDRcrFiXkn16yfc2MUEW, node 265:34511) — starts from
+  // whichever day's row was actually clicked on the Shift Reports list (`?date=`, see dailyReportHref),
+  // falling back to the one ANCHOR_DATE sample day for a direct visit with no date param. This
+  // prototype has no per-day report data beyond that one sample (see the file header comment), so
+  // stepping the picker (or arriving from a different day) only moves the big date heading itself, not
+  // the illustrative content below it.
+  const [viewDate, setViewDate] = useState(() => parseDateParam(searchParams.get("date")) ?? ANCHOR_DATE);
 
   const dailyReport = buildDailyReport(0, contractBuildings);
   const allShiftReports = dailyReport.shifts.map((shift) => buildShiftReport(shift, 0, contractBuildings));
@@ -145,14 +147,12 @@ export function DailyReportPage({ contractBuildings }: DailyReportPageProps) {
   // note is required, not optional — a Site Director's sign-off has to carry his own review remark,
   // not just a timestamp, so confirmSignOff below refuses to fire without one.
   const [signOff, setSignOff] = useState<{ timestamp: string; note: string } | null>(initialSignOff);
-  const [signOffModalOpen, setSignOffModalOpen] = useState(false);
   const [signOffNoteDraft, setSignOffNoteDraft] = useState("");
   const trimmedSignOffNote = signOffNoteDraft.trim();
 
   function confirmSignOff() {
     if (!trimmedSignOffNote) return;
     setSignOff({ timestamp: formatSignOffNowLabel(), note: trimmedSignOffNote });
-    setSignOffModalOpen(false);
     setSignOffNoteDraft("");
   }
 
@@ -180,6 +180,12 @@ export function DailyReportPage({ contractBuildings }: DailyReportPageProps) {
 
   const asParam = viewerRole === "director" ? "" : `&as=${viewerRole}`;
   const listHref = viewerRole === "director" ? "/manage-shift/end-of-shift-reports" : `/manage-shift/end-of-shift-reports?as=${viewerRole}`;
+  // Carried along to each shift's own page so its own "back to Daily Report" link can round-trip this
+  // same today/signed-off state instead of losing it — without these, going there and back would
+  // reset isToday to false (every shift tone falls back to "completed") and drop the Site Director's
+  // note back to its unsigned state (see EndOfShiftReportPage's own dailyReportHref).
+  const todayParam = isToday ? "&today=1" : "";
+  const signOffParams = signOff ? `&signedOff=1&at=${encodeURIComponent(signOff.timestamp)}` : "";
 
   return (
     <div className={styles.page}>
@@ -228,60 +234,78 @@ export function DailyReportPage({ contractBuildings }: DailyReportPageProps) {
               </button>
             </div>
           </div>
-          <h1 className={styles.bigDate}>{dateFormatter.format(ANCHOR_DATE)}</h1>
+          <h1 className={styles.bigDate}>{dateFormatter.format(viewDate)}</h1>
         </header>
+
+        {/* Full page width (Figma fileKey 0UJDRcrFiXkn16yfc2MUEW, node 318:44994) — sits above the
+            shift-cards/sidebar split below, not squeezed into .mainColumn's own narrower width. */}
+        {dayInProgress ? (
+          // Nothing to sign off yet — at least one of today's shifts hasn't ended (Figma fileKey
+          // 0UJDRcrFiXkn16yfc2MUEW, node 247:21796's "Reports Pending" card), so there's no note or
+          // avatar row to show, just the same due-by copy every viewer sees.
+          <div className={styles.dailySummaryCard}>
+            <div className={styles.reportsPendingGroup}>
+              <p className={styles.reportsPendingTitle}>Shift Reports Pending</p>
+              <p>Sign Off Due by 8:00am EST on {signOffDueLabel}.</p>
+            </div>
+          </div>
+        ) : (
+          <div className={styles.dailySummaryCard}>
+            {signOff ? (
+              // Juan's own note, once he's actually signed off.
+              <div className={styles.dailySummaryText}>
+                {signOff.note.split("\n").map((line, i) => (
+                  <p key={i}>{line}</p>
+                ))}
+              </div>
+            ) : (
+              // Not signed off yet — only the Site Director can actually sign a day off, so only he
+              // gets the note input right here in the card (no separate modal); a Manager on Shift or
+              // Other User viewing the same unsigned day just sees the plain card below with nothing
+              // to fill in.
+              viewerRole === "director" && (
+                <div className={styles.signOffFormGroup}>
+                  <p className={styles.signOffHeading}>Sign Off on Day</p>
+                  <textarea
+                    id="daily-report-sign-off-note"
+                    className={styles.signOffNoteInput}
+                    value={signOffNoteDraft}
+                    onChange={(e) => setSignOffNoteDraft(e.target.value)}
+                    placeholder="Add a note about the daily report..."
+                    rows={4}
+                    required
+                  />
+                </div>
+              )
+            )}
+            <div className={styles.signOffPersonRow}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={dailyReport.siteManager.avatar} alt="" className={styles.signOffAvatar} />
+              <div className={styles.signOffInfo}>
+                <div className={styles.signOffNameRow}>
+                  <span className={styles.signOffName}>{dailyReport.siteManager.name}</span>
+                  <span className={styles.signOffPosition}>{dailyReport.siteManager.position}</span>
+                </div>
+                {signOff && <span className={styles.signOffComplete}>Signed off at {signOff.timestamp}</span>}
+              </div>
+              {!signOff && viewerRole === "director" && (
+                <Button variant="primary" theme="light" className={styles.signOffButtonFit} onClick={confirmSignOff} disabled={!trimmedSignOffNote}>
+                  Sign Off on Day
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
 
         <div className={styles.body}>
           <div className={styles.mainColumn}>
-            {dayInProgress ? (
-              // Nothing to sign off yet — at least one of today's shifts hasn't ended (Figma fileKey
-              // 0UJDRcrFiXkn16yfc2MUEW, node 247:21796's "Reports Pending" card), so there's no note or
-              // avatar row to show, just the same due-by copy every viewer sees.
-              <div className={styles.dailySummaryCard}>
-                <div className={styles.dailySummaryText}>
-                  <p className={styles.reportsPendingTitle}>Reports Pending</p>
-                  <p>Sign Off Due by 8:00am EST on {signOffDueLabel}.</p>
-                </div>
-              </div>
-            ) : (
-              <div className={styles.dailySummaryCard}>
-                {/* Juan's own note only exists once he's actually signed off with one in the modal below
-                    — before that, there's nothing here to show yet, just the sign-off action itself. */}
-                {signOff && (
-                  <div className={styles.dailySummaryText}>
-                    {signOff.note.split("\n").map((line, i) => (
-                      <p key={i}>{line}</p>
-                    ))}
-                  </div>
-                )}
-                <div className={styles.signOffPersonRow}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={dailyReport.siteManager.avatar} alt="" className={styles.signOffAvatar} />
-                  <div className={styles.signOffInfo}>
-                    <div className={styles.signOffNameRow}>
-                      <span className={styles.signOffName}>{dailyReport.siteManager.name}</span>
-                      <span className={styles.signOffPosition}>{dailyReport.siteManager.position}</span>
-                    </div>
-                    {signOff && <span className={styles.signOffComplete}>Signed off at {signOff.timestamp}</span>}
-                  </div>
-                  {/* Only the Site Director can actually sign a day off — a Manager on Shift or Other
-                      User viewing an unsigned day just sees the same card with no action on it. */}
-                  {!signOff && viewerRole === "director" && (
-                    <Button variant="primary" theme="light" className={styles.signOffButtonFit} onClick={() => setSignOffModalOpen(true)}>
-                      Sign Off Day
-                    </Button>
-                  )}
-                </div>
-              </div>
-            )}
-
             {SHIFT_ORDER.map((shiftKey) => (
               <ShiftRow
                 key={shiftKey}
                 shiftKey={shiftKey}
                 report={shiftReportByKey[shiftKey]}
                 tone={shiftTones[shiftKey]}
-                href={`/manage-shift/end-of-shift-report?shift=${shiftKey}${asParam}`}
+                href={`/manage-shift/end-of-shift-report?shift=${shiftKey}&date=${formatDateParam(viewDate)}${asParam}${todayParam}${signOffParams}${shiftTones[shiftKey] === "completed" ? "&completed=1" : ""}`}
               />
             ))}
           </div>
@@ -291,6 +315,26 @@ export function DailyReportPage({ contractBuildings }: DailyReportPageProps) {
               <h2 className={styles.summaryTitle}>Daily Summary</h2>
               <div className={styles.hairline} />
 
+              <SidebarStat
+                icon={<ClockIcon />}
+                iconClassName={styles.sidebarStatIconYellow}
+                value={formatMinutesToHoursLabel(capturedMinutes)}
+                label="Hours Captured"
+              >
+                <p className={styles.sidebarStatCaption}>
+                  {formatMinutesToHoursLabel(capturedMinutes)} of {formatMinutesToHoursLabel(paidMinutes)} shift time
+                </p>
+                <div className={styles.sidebarSubRow}>
+                  <span>Managers on site</span>
+                  <span>{totalManagers}</span>
+                </div>
+                <div className={styles.sidebarSubRow}>
+                  <span>Associates on site</span>
+                  <span>{totalAssociates}</span>
+                </div>
+              </SidebarStat>
+
+              <div className={styles.hairline} />
               <SidebarStat icon={<VectorSquareIcon />} value={`${dailyAreaCoverage.servicedPercent}%`} label="Areas Serviced">
                 <p className={styles.sidebarStatCaption}>
                   {dailyAreaCoverage.servicedCount.toLocaleString()} of {dailyAreaCoverage.totalAreas.toLocaleString()} total areas serviced
@@ -327,26 +371,6 @@ export function DailyReportPage({ contractBuildings }: DailyReportPageProps) {
                 <p className={styles.sidebarStatCaption}>
                   {realServicesCompleted.toLocaleString()} of {realServicesExpected.toLocaleString()} services completed
                 </p>
-              </SidebarStat>
-
-              <div className={styles.hairline} />
-              <SidebarStat
-                icon={<ClockIcon />}
-                iconClassName={styles.sidebarStatIconYellow}
-                value={formatMinutesToHoursLabel(capturedMinutes)}
-                label="Hours Captured"
-              >
-                <p className={styles.sidebarStatCaption}>
-                  {formatMinutesToHoursLabel(capturedMinutes)} of {formatMinutesToHoursLabel(paidMinutes)} shift time
-                </p>
-                <div className={styles.sidebarSubRow}>
-                  <span>Managers on site</span>
-                  <span>{totalManagers}</span>
-                </div>
-                <div className={styles.sidebarSubRow}>
-                  <span>Associates on site</span>
-                  <span>{totalAssociates}</span>
-                </div>
               </SidebarStat>
 
               <div className={styles.hairline} />
@@ -415,29 +439,6 @@ export function DailyReportPage({ contractBuildings }: DailyReportPageProps) {
       </main>
 
       <ManagerQueuePanel open={managerQueueOpen} onClose={() => setManagerQueueOpen(false)} theme="light" />
-
-      <Modal open={signOffModalOpen} onClose={() => setSignOffModalOpen(false)} title="Sign off today's reports?" theme="light">
-        <label className={styles.signOffNoteLabel} htmlFor="daily-report-sign-off-note">
-          Note (required)
-        </label>
-        <textarea
-          id="daily-report-sign-off-note"
-          className={styles.signOffNoteInput}
-          value={signOffNoteDraft}
-          onChange={(e) => setSignOffNoteDraft(e.target.value)}
-          placeholder="Add a note about today's shifts..."
-          rows={4}
-          required
-        />
-        <div className={styles.confirmActions}>
-          <Button variant="primary" theme="light" onClick={confirmSignOff} disabled={!trimmedSignOffNote}>
-            Sign Off Day
-          </Button>
-          <Button variant="secondary" theme="light" onClick={() => setSignOffModalOpen(false)}>
-            Cancel
-          </Button>
-        </div>
-      </Modal>
     </div>
   );
 }
@@ -460,42 +461,73 @@ function ShiftRow({ shiftKey, report, tone, href }: { shiftKey: ShiftKey; report
   const reportedNote = report.notes[0];
   const reportedByName = report.managers[0]?.name ?? reportedNote?.author.name;
   const managersOnShift = INITIAL_SHIFT_REPORTS[shiftKey].managers.length;
+  const completedMetaLabel = tone === "completed" && reportedNote && `Reported at ${reportedNote.timestamp} by ${reportedByName}`;
 
-  const metaLabel =
-    tone === "completed"
-      ? reportedNote && `Reported at ${reportedNote.timestamp} by ${reportedByName}`
-      : tone === "inProgress"
-        ? `${managersOnShift} manager${managersOnShift === 1 ? "" : "s"} checked in`
-        : tone === "overdue"
-          ? `${label} Report Overdue`
-          : "Shift Not Started";
+  const content = (
+    <div className={styles.shiftCardHeader} data-tone={tone}>
+      <div className={styles.shiftCardHeaderText}>
+        <span className={styles.shiftCardTitle}>{label} Shift</span>
+        {completedMetaLabel && <span className={styles.shiftCardMeta}>{completedMetaLabel}</span>}
+      </div>
+
+      {tone === "completed" && (
+        <div className={styles.shiftCardStatsExpanded}>
+          <ShiftHeaderStat icon={<ClockIcon />} iconClassName={styles.shiftHeaderStatIconYellow} title={`${report.hoursPercent}% Hours Captured`}>
+            {report.hoursCapturedLabel} of {report.hoursPaidLabel}
+          </ShiftHeaderStat>
+          <ShiftHeaderStat icon={<VectorSquareIcon />} title={`${report.areaCoverage.servicedPercent}% Areas Serviced`}>
+            {report.areaCoverage.servicedCount.toLocaleString()} of {report.areaCoverage.totalAreas.toLocaleString()}
+          </ShiftHeaderStat>
+          <ShiftHeaderStat icon={<BroomWideIcon />} iconClassName={styles.shiftHeaderStatIconPurple} title={`${report.servicesPercent}% Services Completed`}>
+            {report.servicesCompletedCount.toLocaleString()} of {report.servicesExpectedCount.toLocaleString()}
+          </ShiftHeaderStat>
+        </div>
+      )}
+
+      {tone === "inProgress" && (
+        <div className={styles.shiftCardStatus}>
+          <span className={styles.shiftCardStatusTitle}>Shift in Progress</span>
+          <span className={styles.shiftCardStatusCaption}>
+            {managersOnShift} manager{managersOnShift === 1 ? "" : "s"} checked in
+          </span>
+        </div>
+      )}
+
+      {tone === "overdue" && (
+        <div className={styles.shiftCardStatus}>
+          <span className={styles.shiftCardStatusOverdue}>{label} Report Overdue</span>
+        </div>
+      )}
+
+      {tone === "notStarted" && (
+        <div className={styles.shiftCardStatus}>
+          <span className={styles.shiftCardStatusCaption}>Shift Not Started</span>
+        </div>
+      )}
+
+      {/* IconProps components don't forward arbitrary DOM attributes (see icons.tsx's fa()), so
+          data-tone has to live on a wrapping span instead of the icon itself for the CSS tone
+          selector below to actually match anything. */}
+      <span className={styles.shiftCardArrow} data-tone={tone}>
+        <ChevronRightIcon />
+      </span>
+    </div>
+  );
+
+  // Nothing to open yet — a shift that hasn't started has no report at all, so its row is inert
+  // (grey chevron, see .shiftCardArrow[data-tone="notStarted"]) instead of a dead link to a page with
+  // nothing on it.
+  if (tone === "notStarted") {
+    return (
+      <div className={styles.shiftCard} aria-disabled="true">
+        {content}
+      </div>
+    );
+  }
 
   return (
-    <Link href={href} className={styles.shiftCard} data-tone={tone}>
-      <div className={styles.shiftCardHeader}>
-        <div className={styles.shiftCardHeaderText}>
-          <span className={styles.shiftCardTitle} data-tone={tone}>
-            {label} Shift{tone === "inProgress" ? " in Progress" : ""}
-          </span>
-          {metaLabel && <span className={styles.shiftCardMeta}>{metaLabel}</span>}
-        </div>
-
-        {tone === "completed" && (
-          <div className={styles.shiftCardStatsExpanded}>
-            <ShiftHeaderStat icon={<VectorSquareIcon />} title={`${report.areaCoverage.servicedPercent}% Areas Serviced`}>
-              {report.areaCoverage.servicedCount.toLocaleString()} of {report.areaCoverage.totalAreas.toLocaleString()}
-            </ShiftHeaderStat>
-            <ShiftHeaderStat icon={<BroomWideIcon />} iconClassName={styles.shiftHeaderStatIconPurple} title={`${report.servicesPercent}% Services Completed`}>
-              {report.servicesCompletedCount.toLocaleString()} of {report.servicesExpectedCount.toLocaleString()}
-            </ShiftHeaderStat>
-            <ShiftHeaderStat icon={<ClockIcon />} iconClassName={styles.shiftHeaderStatIconYellow} title={`${report.hoursPercent}% Hours Captured`}>
-              {report.hoursCapturedLabel} of {report.hoursPaidLabel}
-            </ShiftHeaderStat>
-          </div>
-        )}
-
-        <ArrowRightIcon className={styles.shiftCardArrow} />
-      </div>
+    <Link href={href} className={styles.shiftCard}>
+      {content}
     </Link>
   );
 }

@@ -336,24 +336,44 @@ const GRAVEYARD_SHIFT_REPORT: ShiftReportState = {
   completedAt: null,
 };
 
-/** A seed note for one of Day's sections, attributed to its lead manager — every note-taking section needs at least one for `allSectionsHaveNotes` to actually permit completing the shift (see canComplete in EndOfShiftReportPage). */
-function daySeedNote(id: string, text: string, tags: string[] = []): ShiftNote {
-  return { id: `day-seed-${id}`, managerId: "william-guy", timestamp: "1:45 PM EDT", text, tags };
+/** A seed note for one of a shift's sections — every note-taking section needs at least one for
+ * `allSectionsHaveNotes` to actually permit completing the shift (see canComplete in
+ * EndOfShiftReportPage), and a "completed"/submitted shift on the Shift Reports list or Daily Report
+ * (every past day, see buildPastRow) reads as already-submitted here too (EndOfShiftReportPage's own
+ * `completed=1` seeding), so every shift needs this same coverage, not just Day. Defaults to the
+ * shift's own lead manager, with an explicit managerId/timestamp override for a second note from a
+ * different manager on the same shift, so a submitted report doesn't read as just one person's
+ * account of every section. */
+function makeShiftSeedNote(shiftPrefix: ShiftKey, defaultManagerId: string, defaultTimestamp: string) {
+  return function seedNote(id: string, text: string, tags: string[] = [], managerId: string = defaultManagerId, timestamp: string = defaultTimestamp): ShiftNote {
+    return { id: `${shiftPrefix}-seed-${id}`, managerId, timestamp, text, tags };
+  };
 }
+
+const daySeedNote = makeShiftSeedNote("day", "william-guy", "1:45 PM EDT");
 
 /** The desktop End of Shift Report's own copy of Day (6:00 AM - 2:30 PM) — every section already carries one seed note so the report is ready to complete the moment Day's real window actually ends (getShiftLiveStatus), but it loads uncompleted like Swing/Graveyard so the page's live "Shift in Progress"/"Shift Not Started" display reflects the real current time rather than a permanently-closed-out demo. Built as a spread onto INITIAL_SHIFT_REPORT (never a mutation of it), so the mobile Manager App's own copy of this same shift keeps its own independent, entirely-unseeded state. */
 const DAY_SHIFT_REPORT_SEEDED: ShiftReportState = {
   ...INITIAL_SHIFT_REPORT,
   sections: {
     ...INITIAL_SHIFT_REPORT.sections,
-    shiftNotes: { ...INITIAL_SHIFT_REPORT.sections.shiftNotes, notes: [daySeedNote("shiftNotes", "Shift ran smoothly with no major issues to flag.")] },
+    shiftNotes: {
+      ...INITIAL_SHIFT_REPORT.sections.shiftNotes,
+      notes: [
+        daySeedNote("shiftNotes", "Shift ran smoothly with no major issues to flag."),
+        daySeedNote("shiftNotes-2", "Confirmed all associates checked out on time.", [], "betty-rodriguez", "1:52 PM EDT"),
+      ],
+    },
     hoursHeadcount: {
       ...INITIAL_SHIFT_REPORT.sections.hoursHeadcount,
       notes: [daySeedNote("hoursHeadcount", "Confirmed final headcount against the scheduled roster.", ["Staffing"])],
     },
     areaCoverage: {
       ...INITIAL_SHIFT_REPORT.sections.areaCoverage,
-      notes: [daySeedNote("areaCoverage", "All areas serviced except two closed for maintenance.", ["Area Closed"])],
+      notes: [
+        daySeedNote("areaCoverage", "All areas serviced except two closed for maintenance.", ["Area Closed"]),
+        daySeedNote("areaCoverage-2", "Followed up with facilities on the two closed areas — both back in rotation tomorrow.", [], "edga-tacuri", "1:58 PM EDT"),
+      ],
     },
     serviceCoverage: {
       ...INITIAL_SHIFT_REPORT.sections.serviceCoverage,
@@ -365,11 +385,76 @@ const DAY_SHIFT_REPORT_SEEDED: ShiftReportState = {
   completedAt: null,
 };
 
+const swingSeedNote = makeShiftSeedNote("swing", "carlos-muruzumbay", "9:40 PM EDT");
+
+/** Swing's own copy of DAY_SHIFT_REPORT_SEEDED's seeding — same reasoning (every section needs at
+ * least one note so a "completed"/submitted Swing report never shows up locked with nothing in it). */
+const SWING_SHIFT_REPORT_SEEDED: ShiftReportState = {
+  ...SWING_SHIFT_REPORT,
+  sections: {
+    ...SWING_SHIFT_REPORT.sections,
+    shiftNotes: {
+      ...SWING_SHIFT_REPORT.sections.shiftNotes,
+      notes: [
+        swingSeedNote("shiftNotes", "Handoff from Day was clean, no open items carried over."),
+        swingSeedNote("shiftNotes-2", "Verified all vendor deliveries were logged before shift change.", [], "tonya-breland", "9:48 PM EDT"),
+      ],
+    },
+    hoursHeadcount: {
+      ...SWING_SHIFT_REPORT.sections.hoursHeadcount,
+      notes: [swingSeedNote("hoursHeadcount", "Headcount matched the schedule with no late arrivals.", ["Staffing"])],
+    },
+    areaCoverage: {
+      ...SWING_SHIFT_REPORT.sections.areaCoverage,
+      notes: [swingSeedNote("areaCoverage", "All zones serviced on schedule, no closures tonight.")],
+    },
+    serviceCoverage: {
+      ...SWING_SHIFT_REPORT.sections.serviceCoverage,
+      notes: [swingSeedNote("serviceCoverage", "Service completion tracked ahead of pace for the shift.")],
+    },
+    quality: { ...SWING_SHIFT_REPORT.sections.quality, notes: [swingSeedNote("quality", "Quality checks came back consistent with prior shifts.")] },
+  },
+  completedBy: null,
+  completedAt: null,
+};
+
+const graveyardSeedNote = makeShiftSeedNote("graveyard", "braulio-abreu", "5:40 AM EDT");
+
+/** Graveyard's own copy of DAY_SHIFT_REPORT_SEEDED's seeding — same reasoning as Swing's. */
+const GRAVEYARD_SHIFT_REPORT_SEEDED: ShiftReportState = {
+  ...GRAVEYARD_SHIFT_REPORT,
+  sections: {
+    ...GRAVEYARD_SHIFT_REPORT.sections,
+    shiftNotes: {
+      ...GRAVEYARD_SHIFT_REPORT.sections.shiftNotes,
+      notes: [
+        graveyardSeedNote("shiftNotes", "Quiet overnight shift, no incidents to report."),
+        graveyardSeedNote("shiftNotes-2", "Restocked supply closets on both floors before Day arrived.", [], "anabel-ramirez", "5:48 AM EDT"),
+      ],
+    },
+    hoursHeadcount: {
+      ...GRAVEYARD_SHIFT_REPORT.sections.hoursHeadcount,
+      notes: [graveyardSeedNote("hoursHeadcount", "Overnight headcount confirmed against the roster.", ["Staffing"])],
+    },
+    areaCoverage: {
+      ...GRAVEYARD_SHIFT_REPORT.sections.areaCoverage,
+      notes: [graveyardSeedNote("areaCoverage", "All areas serviced except one closed for scheduled maintenance.", ["Area Closed"])],
+    },
+    serviceCoverage: {
+      ...GRAVEYARD_SHIFT_REPORT.sections.serviceCoverage,
+      notes: [graveyardSeedNote("serviceCoverage", "Services completed on pace with the overnight target.")],
+    },
+    quality: { ...GRAVEYARD_SHIFT_REPORT.sections.quality, notes: [graveyardSeedNote("quality", "No quality flags raised overnight.")] },
+  },
+  completedBy: null,
+  completedAt: null,
+};
+
 /** One independent ShiftReportState per shift — the web End of Shift Report's own Day/Swing/Graveyard toggle (Manage Shift's Rollup) switches which of these three is showing, each with its own roster, notes, and completion state. Keyed the same as SHIFT_OPTIONS/SHIFT_LABELS. */
 export const INITIAL_SHIFT_REPORTS: Record<ShiftKey, ShiftReportState> = {
   day: DAY_SHIFT_REPORT_SEEDED,
-  swing: SWING_SHIFT_REPORT,
-  graveyard: GRAVEYARD_SHIFT_REPORT,
+  swing: SWING_SHIFT_REPORT_SEEDED,
+  graveyard: GRAVEYARD_SHIFT_REPORT_SEEDED,
 };
 
 export function getManager(state: ShiftReportState, managerId: string): ShiftManager | undefined {

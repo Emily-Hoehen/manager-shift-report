@@ -20,7 +20,7 @@
 
 import type { ContractBuilding } from "./sowContract";
 import { photoForAreaType } from "./sowImages";
-import { pickClockTime, scaleForDay, scoreForDay } from "./sowData";
+import { hashSeed, scaleForDay, scoreForDay } from "./sowData";
 import { computeShiftAreaServices } from "./mapAreaServiceData";
 
 export type QualityScore = {
@@ -175,9 +175,12 @@ function buildAiOverview(shifts: DailyReportShift[]): string {
   return `${recap}\n${signOffNote}`;
 }
 
-/** "Signed off at 9:04 PM EDT" for the site manager row — deterministic per day, so it doesn't change on every render. */
+/** "Signed off at 7:47 AM EDT" for the site manager row — every day's sign-off falls in the same
+ * real-world 7:30-8:00 AM window (the morning after Graveyard wraps, before the next Day shift's own
+ * report is due), just jittered a few deterministic minutes per day instead of literally identical. */
 function buildSignOffLabel(dayOffset: number): string {
-  return `Signed off at ${pickClockTime(`site-manager-signoff-${dayOffset}`)}`;
+  const minute = 30 + (Math.abs(hashSeed(`site-manager-signoff-${dayOffset}`)) % 30);
+  return `Signed off at 7:${String(minute).padStart(2, "0")} AM EDT`;
 }
 
 /** Per-shift Hours/Service % for the Daily Report panel — real shift managers from data/managers.csv (their own `Shift` column matches) and a real total-areas-for-shift/missed-areas count from lib/mapAreaServiceData.ts's computeShiftAreaServices (the same per-area model the Shift Report drill-down reads, so the two surfaces always agree). */
