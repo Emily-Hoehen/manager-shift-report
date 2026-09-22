@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { BriefcaseIcon, ChevronDownIcon, LayerGroupIcon, LocationDotIcon, PinIcon, SearchIcon, UpRightAndDownLeftFromCenterIcon, XmarkIcon } from "./icons";
 import type { ZoomTarget } from "./MapShiftReportSections";
 import { MapShiftTimeline } from "./MapShiftTimeline";
 import { MapStatsPanel } from "./MapStatsPanel";
 import { FullShiftReportModal } from "./FullShiftReportModal";
-import { FullDayReportModalV2 } from "./FullDayReportModalV2";
 import { buildDailyReport, buildMapAreaTypes, mapPageData, type DailyReportShift } from "../../lib/mapPageData";
 import { buildShiftAreaTypeDetail, buildShiftReport } from "../../lib/mapShiftReportData";
 import {
@@ -17,6 +17,7 @@ import {
   statusForCounts,
   type AreaStatus,
 } from "../../lib/mapAreaServiceData";
+import { formatDateParam } from "../../lib/shiftReportListData";
 import type { ContractBuilding } from "../../lib/sowContract";
 import { ANCHOR_DATE } from "../../lib/sowData";
 import styles from "./MapPage.module.css";
@@ -64,7 +65,6 @@ export function MapPage({ contractBuildings }: MapPageProps) {
   /** Permanently null — the status filter buttons are disabled (no-op onClick below), so every downstream stat/list that branches on "statusFilter === null" always takes its unfiltered path, and the sidebar/map content never changes from clicking them. */
   const statusFilter: AreaStatus | null = null;
   const [fullReportOpen, setFullReportOpen] = useState(false);
-  const [fullDayReportV2Open, setFullDayReportV2Open] = useState(false);
   const areaMenuRef = useRef<HTMLDivElement>(null);
 
   const dayOffset = Math.round((ANCHOR_DATE.getTime() - date.getTime()) / MS_PER_DAY);
@@ -79,11 +79,6 @@ export function MapPage({ contractBuildings }: MapPageProps) {
   const areaTypeDetail = useMemo(
     () => (selectedShift && selectedAreaTypeName ? buildShiftAreaTypeDetail(selectedShift, dayOffset, contractBuildings, selectedAreaTypeName) : null),
     [selectedShift, dayOffset, contractBuildings, selectedAreaTypeName]
-  );
-  /** All three shifts' full reports, combined by FullDayReportModal into one document with a single Site Manager sign-off — built eagerly (not just for the selected shift) since "View Full Day Report" can be opened without any shift selected. */
-  const allShiftReports = useMemo(
-    () => dailyReport.shifts.map((shift) => buildShiftReport(shift, dayOffset, contractBuildings)),
-    [dailyReport.shifts, dayOffset, contractBuildings]
   );
   /** Whole-day "Areas Serviced" breakdown for FullDayReportModal's Daily Summary sidebar — every one of the site's 709 areas against its combined expected/completed across the Day/Swing/Graveyard shifts (see computeDailyAreaCoverageBreakdown), so it's the same physical areas being counted once each for the day, not a fresh set (or a sum of shift-level counts) per shift. */
   const dailyAreaCoverage = useMemo(() => computeDailyAreaCoverageBreakdown(contractBuildings, dayOffset), [contractBuildings, dayOffset]);
@@ -269,10 +264,10 @@ export function MapPage({ contractBuildings }: MapPageProps) {
         </button>
       </div>
 
-      <button type="button" className={styles.viewDailyReportButton} onClick={() => setFullDayReportV2Open(true)}>
+      <Link href={`/manage-shift/daily-report?date=${formatDateParam(date)}`} className={styles.viewDailyReportButton}>
         <UpRightAndDownLeftFromCenterIcon className={styles.viewDailyReportIcon} />
         <span>View Daily Report</span>
-      </button>
+      </Link>
 
       <div className={styles.statsPanelWrap}>
         <MapStatsPanel
@@ -308,19 +303,6 @@ export function MapPage({ contractBuildings }: MapPageProps) {
           date={date}
           siteManager={dailyReport.siteManager}
           onClose={() => setFullReportOpen(false)}
-        />
-      )}
-
-      {fullDayReportV2Open && (
-        <FullDayReportModalV2
-          shiftReports={allShiftReports}
-          siteName={mapPageData.siteName}
-          date={date}
-          siteManager={dailyReport.siteManager}
-          aiOverview={dailyReport.aiOverview}
-          siteManagerSignOff={dailyReport.siteManagerSignOff}
-          areaCoverage={dailyAreaCoverage}
-          onClose={() => setFullDayReportV2Open(false)}
         />
       )}
     </div>

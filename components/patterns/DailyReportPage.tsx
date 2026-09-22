@@ -63,7 +63,6 @@ function getTodayShiftTone(shiftKey: ShiftKey, now: Date | null): ShiftRowTone {
   return INITIAL_SHIFT_REPORTS[shiftKey].completedBy ? "completed" : "notSubmitted";
 }
 
-/** Same three Quality categories FullDayReportModalV2 shows in the Map — kept identical here so the two surfaces never disagree. */
 const QUALITY_DISPLAY_LABELS = ["AI Verification", "Internal Audit", "Customer Audit"] as const;
 
 function buildDailyQualityScore(shiftReports: ShiftReport[], label: (typeof QUALITY_DISPLAY_LABELS)[number]): QualityScore {
@@ -82,13 +81,11 @@ export type DailyReportPageProps = {
 };
 
 /**
- * DailyReportPage — the Daily Report, reached from a signed-off day on the Shift Reports list
- * (EndOfShiftReportListPage), as its own light-mode page within 4insite's own nav chrome instead
- * of the dark modal (FullDayReportModalV2) the Map feature opens this same content in. Same data
- * and layout as FullDayReportModalV2 — same shift-card accordion, same Daily Summary sidebar —
- * just without the overlay/dialog chrome, and pinned to the Map's own ANCHOR_DATE sample day (this
- * prototype has no per-day report data beyond that one day, same convention EndOfShiftReportPage
- * uses for every day's own shift report).
+ * DailyReportPage — the Daily Report, reached both from a signed-off day on the Shift Reports list
+ * (EndOfShiftReportListPage) and from the Map's own "View Daily Report" button (MapPage) — the same
+ * page either way, so the two entry points never drift apart. Pinned to the Map's own ANCHOR_DATE
+ * sample day (this prototype has no per-day report data beyond that one day, same convention
+ * EndOfShiftReportPage uses for every day's own shift report).
  */
 export function DailyReportPage({ contractBuildings }: DailyReportPageProps) {
   const searchParams = useSearchParams();
