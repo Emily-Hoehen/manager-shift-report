@@ -8,6 +8,8 @@ export type SelectOption<T extends string> = {
   label: string;
 };
 
+export type DsSelectTheme = "light" | "dark";
+
 export type DsSelectProps<T extends string> = {
   value: T;
   onChange: (value: T) => void;
@@ -17,6 +19,8 @@ export type DsSelectProps<T extends string> = {
   label?: string;
   /** Stretches the trigger (and its drawer) to the width of the parent instead of the default content-hugging min-width — for a form field laid out label-above/field-below rather than inline next to other filter controls. */
   fullWidth?: boolean;
+  /** Defaults to "light" (every existing caller's own page chrome) — a dark-theme page (e.g. the Manager App mobile flow) passes "dark" instead. */
+  theme?: DsSelectTheme;
 };
 
 /**
@@ -30,7 +34,7 @@ export type DsSelectProps<T extends string> = {
  * with a "Filter / Sort / View by"-style control row (SowHierarchyPage,
  * SowTimeFirstPage).
  */
-export function DsSelect<T extends string>({ value, onChange, options, ariaLabel, label, fullWidth }: DsSelectProps<T>) {
+export function DsSelect<T extends string>({ value, onChange, options, ariaLabel, label, fullWidth, theme = "light" }: DsSelectProps<T>) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const selected = options.find((o) => o.value === value);
@@ -52,7 +56,7 @@ export function DsSelect<T extends string>({ value, onChange, options, ariaLabel
   }, [open]);
 
   const select = (
-    <div className={[styles.selectWrap, fullWidth ? styles.selectWrapFull : ""].filter(Boolean).join(" ")} ref={rootRef}>
+    <div className={[styles.selectWrap, fullWidth ? styles.selectWrapFull : ""].filter(Boolean).join(" ")} data-theme={theme} ref={rootRef}>
       <button
         type="button"
         className={[styles.dsSelect, fullWidth ? styles.dsSelectFull : ""].filter(Boolean).join(" ")}
@@ -93,7 +97,7 @@ export function DsSelect<T extends string>({ value, onChange, options, ariaLabel
   if (!label) return select;
 
   return (
-    <div className={styles.filterField}>
+    <div className={styles.filterField} data-theme={theme}>
       <span className={styles.filterFieldLabel}>{label}</span>
       {select}
     </div>

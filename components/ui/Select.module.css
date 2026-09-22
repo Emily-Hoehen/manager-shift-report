@@ -119,3 +119,45 @@
   font-size: 20px;
   color: var(--color-primary-500);
 }
+
+/* ============================================================
+   DARK THEME — a dark-theme caller (e.g. the Manager App mobile
+   flow) passes theme="dark", scoped under this select's own
+   [data-theme="dark"] wrapper.
+   ============================================================ */
+
+.filterField[data-theme="dark"] .filterFieldLabel {
+  color: var(--color-text-dt-grey);
+}
+
+.selectWrap[data-theme="dark"] .dsSelect {
+  background-color: var(--surface-dt-card);
+  border-color: var(--color-neutral-700);
+  color: var(--color-text-dt-default);
+}
+
+.selectWrap[data-theme="dark"] .selectCaret {
+  color: var(--color-text-dt-grey);
+}
+
+.selectWrap[data-theme="dark"] .dropdownDrawer {
+  background-color: var(--surface-dt-card);
+  box-shadow: var(--shadow-dt-popup-menu);
+}
+
+.selectWrap[data-theme="dark"] .dropdownItem {
+  color: var(--color-text-dt-default);
+}
+
+.selectWrap[data-theme="dark"] .dropdownItem:hover {
+  background-color: var(--color-neutral-700);
+}
+
+.selectWrap[data-theme="dark"] .dropdownItemSelected,
+.selectWrap[data-theme="dark"] .dropdownItemSelected:hover {
+  background-color: var(--btn-ghost-dt-primary-static);
+}
+
+.selectWrap[data-theme="dark"] .dropdownItemCheck {
+  color: var(--color-text-dt-blue);
+}
