@@ -242,6 +242,7 @@ export function EndOfShiftReportPage({ contractBuildings }: EndOfShiftReportPage
     quality: true,
   });
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmDeleteNote, setConfirmDeleteNote] = useState<{ sectionKey: SectionKey; noteId: string } | null>(null);
   // Opened from the Hours and Headcount/Report Its rows below (HoursHeadcountData/QualityData) — same
   // AssociateAttendanceModal/ReportItsModal the Map's own Daily Report view opens from its own copies
   // of those same rows (see mapShiftReport above).
@@ -332,6 +333,12 @@ export function EndOfShiftReportPage({ contractBuildings }: EndOfShiftReportPage
   function handleConfirmComplete() {
     updateShift((prev) => ({ ...prev, completedBy: currentManagerId, completedAt: formatNowTimestamp() }));
     setConfirmOpen(false);
+  }
+
+  function handleConfirmDeleteNote() {
+    if (!confirmDeleteNote) return;
+    handleDeleteNote(confirmDeleteNote.sectionKey, confirmDeleteNote.noteId);
+    setConfirmDeleteNote(null);
   }
 
   const isLocked = Boolean(shift.completedBy);
@@ -438,7 +445,7 @@ export function EndOfShiftReportPage({ contractBuildings }: EndOfShiftReportPage
       },
       onAdd: (text, tags) => handleAddNote(sectionKey, text, tags),
       onEdit: (noteId, text, tags) => handleEditNote(sectionKey, noteId, text, tags),
-      onDelete: (noteId) => handleDeleteNote(sectionKey, noteId),
+      onDelete: (noteId) => setConfirmDeleteNote({ sectionKey, noteId }),
     };
   }
 
@@ -725,6 +732,18 @@ export function EndOfShiftReportPage({ contractBuildings }: EndOfShiftReportPage
             Complete Shift Report
           </Button>
           <Button variant="secondary" theme={theme} onClick={() => setConfirmOpen(false)}>
+            Cancel
+          </Button>
+        </div>
+      </Modal>
+
+      <Modal open={confirmDeleteNote !== null} onClose={() => setConfirmDeleteNote(null)} title="Delete this note?" theme={theme}>
+        <p className={styles.confirmBody}>This can&rsquo;t be undone.</p>
+        <div className={styles.confirmActions}>
+          <Button variant="danger" theme={theme} onClick={handleConfirmDeleteNote}>
+            Delete Note
+          </Button>
+          <Button variant="secondary" theme={theme} onClick={() => setConfirmDeleteNote(null)}>
             Cancel
           </Button>
         </div>
