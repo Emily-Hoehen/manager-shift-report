@@ -103,6 +103,49 @@
   object-fit: cover;
 }
 
+/* ---------------- Shift report reminder (check-out only) ---------------- */
+
+.reportWarning {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  background-color: var(--wash-warning-15);
+  color: var(--color-text-dt-default);
+  font-family: var(--type-body-md-family);
+  font-weight: var(--type-body-md-weight);
+  font-size: var(--type-body-md-size);
+  line-height: var(--type-body-md-leading);
+  text-align: left;
+}
+
+.reportWarningIcon {
+  flex-shrink: 0;
+  margin-top: 2px;
+  font-size: 16px;
+  color: var(--color-text-dt-warning);
+}
+
+.reportWarningLink {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--color-text-dt-blue);
+  font-family: inherit;
+  font-weight: 700;
+  font-size: inherit;
+  line-height: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.reportWarningLink:focus-visible {
+  outline: 2px solid var(--color-primary-500);
+  outline-offset: 2px;
+}
+
 /* ---------------- Shift picker (check-in only) ---------------- */
 
 .shiftPicker {
@@ -120,41 +163,12 @@
   line-height: var(--type-h3-leading);
 }
 
-.shiftPickerRow {
-  display: flex;
-  width: 100%;
-  border-radius: 8px;
-  background-color: var(--color-neutral-900);
-}
-
 /* Between the shift picker and the location/map group — plain hairline, same token used for hairlines elsewhere in this app. */
 .divider {
   width: 100%;
   height: 1px;
   flex-shrink: 0;
   background-color: var(--surface-dt-hairline);
-}
-
-.shiftOption {
-  flex: 1;
-  padding: 16px;
-  border: none;
-  border-radius: 8px;
-  background-color: transparent;
-  color: var(--color-text-dt-grey);
-  font-family: var(--type-h4-clickable-family);
-  font-weight: var(--type-h4-clickable-weight);
-  font-size: var(--type-h4-clickable-size);
-  line-height: var(--type-h4-clickable-leading);
-  letter-spacing: var(--type-h4-clickable-tracking);
-  cursor: pointer;
-  transition: background-color 120ms ease, color 120ms ease;
-}
-
-.shiftOptionSelected {
-  background-color: var(--color-neutral-850);
-  color: var(--color-text-dt-blue);
-  box-shadow: var(--shadow-dt-card);
 }
 
 /* Body/Medium — Roboto Regular 14/400, 22px leading. */

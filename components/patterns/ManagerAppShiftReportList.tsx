@@ -103,16 +103,27 @@ export function ManagerAppShiftReportList({ shift, onBack, onOpenSection, onOpen
         )}
 
         <div className={styles.sectionsGroup}>
-          <button type="button" className={styles.sectionRow} onClick={onOpenManagers}>
-            <div className={styles.sectionRowMain}>
-              <span className={styles.sectionRowTitle}>Shift Managers</span>
-              <span className={styles.sectionRowPreview}>{shift.managers.length} managers checked into shift</span>
+          <button type="button" className={styles.managersCard} onClick={onOpenManagers}>
+            <div className={styles.managersTopRow}>
+              <div className={styles.sectionRowMain}>
+                <span className={styles.sectionRowTitle}>Shift Managers</span>
+                <span className={[styles.sectionRowPreview, responsibleManager ? styles.sectionRowPreviewDefault : ""].filter(Boolean).join(" ")}>
+                  {responsibleManager ? `Responsible Manager: ${responsibleManager.name}` : "No responsible manager chosen"}
+                </span>
+              </div>
+              {!isCompleted && (
+                <CircleCheckIcon className={[styles.sectionCheck, responsibleManager ? styles.sectionCheckDone : ""].filter(Boolean).join(" ")} />
+              )}
             </div>
-            <div className={styles.managerAvatarStack}>
-              {shift.managers.slice(0, 4).map((manager) => (
-                /* eslint-disable-next-line @next/next/no-img-element */
-                <img key={manager.id} src={manager.avatar} alt="" className={styles.managerStackAvatar} />
-              ))}
+            <span className={styles.managersDivider} aria-hidden="true" />
+            <div className={styles.managersBottomRow}>
+              <span className={styles.sectionRowPreview}>{shift.managers.length} managers checked into shift</span>
+              <div className={styles.managerAvatarStack}>
+                {shift.managers.slice(0, 4).map((manager) => (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img key={manager.id} src={manager.avatar} alt="" className={styles.managerStackAvatar} />
+                ))}
+              </div>
             </div>
           </button>
 
@@ -142,11 +153,11 @@ export function ManagerAppShiftReportList({ shift, onBack, onOpenSection, onOpen
         <div className={styles.footer}>
           {!canComplete ? (
             <button type="button" className={styles.completeButton} disabled>
-              Complete Report
+              Submit Report
             </button>
           ) : isCurrentResponsible ? (
             <button type="button" className={styles.completeButton} onClick={() => setConfirmOpen(true)}>
-              Complete Report
+              Submit Report
             </button>
           ) : (
             <div className={styles.completeCard}>

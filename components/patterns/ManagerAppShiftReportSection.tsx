@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { MoreHorizontalIcon, PlusIcon } from "./icons";
+import { ChevronRightIcon, MoreHorizontalIcon, PlusIcon } from "./icons";
+import { ManagerAppHeadcountEditSheet } from "./ManagerAppHeadcountEditSheet";
 import { ManagerAppNoteComposerModal } from "./ManagerAppNoteComposerModal";
 import { ManagerAppScreenHeader } from "./ManagerAppScreenHeader";
 import { DonutRing, SegmentedDonutRing } from "../ui/Charts";
@@ -26,6 +27,7 @@ export type ManagerAppShiftReportSectionProps = {
   onAddNote: (sectionKey: SectionKey, text: string, tags: string[]) => void;
   onEditNote: (sectionKey: SectionKey, noteId: string, text: string, tags: string[]) => void;
   onDeleteNote: (sectionKey: SectionKey, noteId: string) => void;
+  onEditScheduledHeadcount: (value: number) => void;
   /** True while ManagerAppHome renders this screen's header itself (outside the slide-transition layer, so the header bar never slides — only the content beneath it does). */
   hideHeader?: boolean;
 };
@@ -39,11 +41,21 @@ export type ManagerAppShiftReportSectionProps = {
  * another. Notes are additive: this never edits or removes another
  * manager's note, only appends the current manager's own.
  */
-export function ManagerAppShiftReportSection({ shift, sectionKey, onBack, onAddNote, onEditNote, onDeleteNote, hideHeader }: ManagerAppShiftReportSectionProps) {
+export function ManagerAppShiftReportSection({
+  shift,
+  sectionKey,
+  onBack,
+  onAddNote,
+  onEditNote,
+  onDeleteNote,
+  onEditScheduledHeadcount,
+  hideHeader,
+}: ManagerAppShiftReportSectionProps) {
   const section = shift.sections[sectionKey];
   const isLocked = Boolean(shift.completedBy);
   const [composerOpen, setComposerOpen] = useState(false);
   const [editingNote, setEditingNote] = useState<ShiftNote | null>(null);
+  const [headcountEditOpen, setHeadcountEditOpen] = useState(false);
 
   function openComposerForNew() {
     setEditingNote(null);
@@ -80,7 +92,12 @@ export function ManagerAppShiftReportSection({ shift, sectionKey, onBack, onAddN
           </div>
         ) : (
           <>
-            <AutoCapturedData shift={shift} sectionKey={sectionKey} />
+            <AutoCapturedData
+              shift={shift}
+              sectionKey={sectionKey}
+              editable={!isLocked}
+              onEditScheduledHeadcount={() => setHeadcountEditOpen(true)}
+            />
 
             <div className={styles.group}>
               <span className={styles.notesLabel}>Notes</span>
@@ -133,6 +150,18 @@ export function ManagerAppShiftReportSection({ shift, sectionKey, onBack, onAddN
           setComposerOpen(false);
         }}
       />
+
+      {sectionKey === "hoursHeadcount" && (
+        <ManagerAppHeadcountEditSheet
+          open={headcountEditOpen}
+          value={shift.sections.hoursHeadcount.scheduledHeadcount}
+          onCancel={() => setHeadcountEditOpen(false)}
+          onSave={(value) => {
+            onEditScheduledHeadcount(value);
+            setHeadcountEditOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -221,7 +250,17 @@ function NoteCard({
   );
 }
 
-function AutoCapturedData({ shift, sectionKey }: { shift: ShiftReportState; sectionKey: SectionKey }) {
+function AutoCapturedData({
+  shift,
+  sectionKey,
+  editable,
+  onEditScheduledHeadcount,
+}: {
+  shift: ShiftReportState;
+  sectionKey: SectionKey;
+  editable: boolean;
+  onEditScheduledHeadcount: () => void;
+}) {
   const s = shift.sections;
 
   if (sectionKey === "hoursHeadcount") {
@@ -248,7 +287,11 @@ function AutoCapturedData({ shift, sectionKey }: { shift: ShiftReportState; sect
 
         <div className={styles.card}>
           <div className={styles.headcountRowsGroup}>
-            <HeadcountRow label="Scheduled Headcount" value={d.scheduledHeadcount} />
+            <HeadcountRow
+              label="Scheduled Headcount"
+              value={d.scheduledHeadcount}
+              onPress={editable ? onEditScheduledHeadcount : undefined}
+            />
             <HeadcountRow label="Actual Arrival" value={d.actualArrival} />
             <HeadcountRow label="Total Absences" value={d.totalAbsences} />
             <HeadcountRow label="No Call/No Show" value={d.noCallNoShow} indented muted />
@@ -361,16 +404,43 @@ function ShiftCapturedDataHeading({ shift }: { shift: ShiftReportState }) {
   );
 }
 
-function HeadcountRow({ label, value, indented, muted, suffix }: { label: string; value: number; indented?: boolean; muted?: boolean; suffix?: string }) {
-  return (
-    <div className={[styles.headcountRow, indented ? styles.headcountRowIndented : "", muted ? styles.headcountRowMuted : ""].filter(Boolean).join(" ")}>
+function HeadcountRow({
+  label,
+  value,
+  indented,
+  muted,
+  suffix,
+  onPress,
+}: {
+  label: string;
+  value: number;
+  indented?: boolean;
+  muted?: boolean;
+  suffix?: string;
+  /** When set, the row becomes tappable (currently just Scheduled Headcount) — e.g. to enter how many people were scheduled for the shift. */
+  onPress?: () => void;
+}) {
+  const rowClassName = [styles.headcountRow, indented ? styles.headcountRowIndented : "", muted ? styles.headcountRowMuted : ""].filter(Boolean).join(" ");
+  const content = (
+    <>
       <span className={styles.headcountLabel}>{label}</span>
       <span className={styles.headcountValue}>
         {value.toLocaleString()}
         {suffix ?? ""}
       </span>
-    </div>
+      {onPress && <ChevronRightIcon className={styles.headcountChevron} />}
+    </>
   );
+
+  if (onPress) {
+    return (
+      <button type="button" className={[rowClassName, styles.headcountRowEditable].join(" ")} onClick={onPress}>
+        {content}
+      </button>
+    );
+  }
+
+  return <div className={rowClassName}>{content}</div>;
 }
 
 function QualityCard({ label, score, count, unit }: { label: string; score: number; count: number; unit: string }) {

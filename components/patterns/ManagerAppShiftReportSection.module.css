@@ -202,6 +202,30 @@
   gap: 16px;
 }
 
+/* Applied instead of/alongside .headcountRow when the row is tappable (currently just Scheduled Headcount) — full-width button reset so the whole row is the tap target, plus the trailing chevron affordance. */
+.headcountRowEditable {
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.headcountRowEditable:focus-visible {
+  outline: 2px solid var(--color-primary-500);
+  outline-offset: 2px;
+}
+
+.headcountChevron {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--color-text-dt-grey);
+}
+
 .headcountRowIndented {
   padding-left: 24px;
 }

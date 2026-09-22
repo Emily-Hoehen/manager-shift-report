@@ -1,0 +1,152 @@
+/* ============================================================
+   ManagerAppSelectShiftDrawer — bottom sheet for picking which
+   shift to check in for, opened from ManagerAppClockSheet's own
+   "Checking in for" field. Figma fileKey 0UJDRcrFiXkn16yfc2MUEW,
+   node 394:49836 ("Select Shift Drawer"). Stacks above
+   ManagerAppClockSheet (higher z-index), same bottom-sheet
+   mechanics (position:fixed resolves against AndroidPhoneFrame's
+   .screen). Design tokens only; respects prefers-reduced-motion.
+   ============================================================ */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background-color: rgba(24, 30, 36, 0.32);
+}
+
+.sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  padding: 16px;
+  border-radius: 16px 16px 0 0;
+  background-color: var(--color-neutral-800);
+  box-shadow: var(--shadow-dt-modal);
+  color: var(--color-text-dt-default);
+  outline: none;
+  animation: sheetRiseIn 280ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.sheetClosing {
+  animation: sheetSlideDown 260ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+}
+
+/* Title Medium — Lato Bold 18/700, 24px leading. */
+.title {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-family-display);
+  font-weight: 700;
+  font-size: 18px;
+  line-height: 1.3333;
+  color: var(--color-neutral-100);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.closeButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: none;
+  border-radius: 100px;
+  background-color: var(--color-neutral-850);
+  color: var(--color-neutral-100);
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.closeButton:focus-visible {
+  outline: 2px solid var(--color-primary-500);
+  outline-offset: 2px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 18px 0;
+  border: none;
+  border-bottom: 1px solid var(--color-neutral-700);
+  background: none;
+  cursor: pointer;
+  text-align: left;
+}
+
+.row:focus-visible {
+  outline: 2px solid var(--color-primary-500);
+  outline-offset: -2px;
+}
+
+/* Body Medium — Lato Medium 16/500, 20px leading. */
+.rowLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-family-display);
+  font-weight: 500;
+  font-size: 16px;
+  line-height: 20px;
+  color: var(--color-neutral-100);
+}
+
+.row[data-selected="true"] .rowLabel {
+  color: var(--color-text-dt-blue);
+}
+
+.rowCheck {
+  flex-shrink: 0;
+  font-size: 20px;
+  color: var(--color-text-dt-blue);
+}
+
+@keyframes sheetRiseIn {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes sheetSlideDown {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet,
+  .sheetClosing {
+    animation: none;
+  }
+}

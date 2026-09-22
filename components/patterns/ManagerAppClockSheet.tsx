@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import { CircleCheckIcon } from "./icons";
+import { CircleCheckIcon, TriangleExclamationIcon } from "./icons";
+import { ManagerAppSelectShiftDrawer } from "./ManagerAppSelectShiftDrawer";
+import selectStyles from "../ui/Select.module.css";
 import { SHIFT_OPTIONS, type ShiftKey } from "../../lib/managerShiftReportData";
 import styles from "./ManagerAppClockSheet.module.css";
 
@@ -17,6 +19,9 @@ export type ManagerAppClockSheetProps = {
   onSelectShift: (key: ShiftKey) => void;
   onConfirm: () => void;
   onCancel: () => void;
+  /** Check-out only — shows an inline reminder that the End of Shift Report hasn't been submitted yet. Checking out is still allowed. */
+  showReportWarning?: boolean;
+  onGoToReport?: () => void;
 };
 
 /** Matches .sheetClosing's animation-duration in ManagerAppClockSheet.module.css — how long the slide-down exit runs before this actually unmounts. */
@@ -33,11 +38,22 @@ const EXIT_DURATION_MS = 260;
  * scoped to the phone screen by AndroidPhoneFrame's .screen transform
  * (see that component), not the real browser viewport.
  */
-export function ManagerAppClockSheet({ open, mode, elapsedLabel, selectedShift, onSelectShift, onConfirm, onCancel }: ManagerAppClockSheetProps) {
+export function ManagerAppClockSheet({
+  open,
+  mode,
+  elapsedLabel,
+  selectedShift,
+  onSelectShift,
+  onConfirm,
+  onCancel,
+  showReportWarning,
+  onGoToReport,
+}: ManagerAppClockSheetProps) {
   const titleId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
   const [mounted, setMounted] = useState(open);
   const [closing, setClosing] = useState(false);
+  const [shiftDrawerOpen, setShiftDrawerOpen] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -75,6 +91,7 @@ export function ManagerAppClockSheet({ open, mode, elapsedLabel, selectedShift, 
   const isCheckIn = mode === "check-in";
 
   return (
+    <>
     <div className={styles.overlay} onClick={onCancel}>
       <div
         ref={dialogRef}
@@ -93,18 +110,19 @@ export function ManagerAppClockSheet({ open, mode, elapsedLabel, selectedShift, 
           <>
             <div className={styles.shiftPicker}>
               <span className={styles.shiftPickerLabel}>Checking in for</span>
-              <div className={styles.shiftPickerRow}>
-                {SHIFT_OPTIONS.map((shift) => (
-                  <button
-                    key={shift.key}
-                    type="button"
-                    className={[styles.shiftOption, selectedShift === shift.key ? styles.shiftOptionSelected : ""].filter(Boolean).join(" ")}
-                    aria-pressed={selectedShift === shift.key}
-                    onClick={() => onSelectShift(shift.key)}
-                  >
-                    {shift.label}
-                  </button>
-                ))}
+              {/* Opens the full Select Shift drawer instead of an inline dropdown — a plain row of
+                  buttons stops fitting the moment there are more than three shifts to choose from,
+                  and a drawer is the friendlier target on an Android-width screen either way. */}
+              <div className={selectStyles.selectWrap} data-theme="dark">
+                <button
+                  type="button"
+                  className={[selectStyles.dsSelect, selectStyles.dsSelectFull].join(" ")}
+                  aria-haspopup="dialog"
+                  onClick={() => setShiftDrawerOpen(true)}
+                >
+                  <span className={selectStyles.dsSelectValue}>{SHIFT_OPTIONS.find((s) => s.key === selectedShift)?.label} Shift</span>
+                  <i className={["fa-solid fa-chevron-down", selectStyles.selectCaret].join(" ")} aria-hidden="true" />
+                </button>
               </div>
               <span className={styles.shiftPickerCaption}>{SHIFT_OPTIONS.find((s) => s.key === selectedShift)?.timeRange}</span>
             </div>
@@ -135,6 +153,18 @@ export function ManagerAppClockSheet({ open, mode, elapsedLabel, selectedShift, 
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/checkinpic.png" alt="" className={styles.mapPreview} aria-hidden="true" />
           </div>
+
+          {!isCheckIn && showReportWarning && (
+            <div className={styles.reportWarning}>
+              <TriangleExclamationIcon className={styles.reportWarningIcon} />
+              <span>
+                You haven&rsquo;t submitted your End of Shift Report yet.{" "}
+                <button type="button" className={styles.reportWarningLink} onClick={onGoToReport}>
+                  Go to Shift Report
+                </button>
+              </span>
+            </div>
+          )}
         </div>
 
         <div className={styles.actions}>
@@ -147,5 +177,15 @@ export function ManagerAppClockSheet({ open, mode, elapsedLabel, selectedShift, 
         </div>
       </div>
     </div>
+
+    {isCheckIn && (
+      <ManagerAppSelectShiftDrawer
+        open={shiftDrawerOpen}
+        value={selectedShift}
+        onSelect={onSelectShift}
+        onClose={() => setShiftDrawerOpen(false)}
+      />
+    )}
+    </>
   );
 }

@@ -170,6 +170,30 @@ export function ManagerAppHome() {
     setShiftReport((prev) => ({ ...prev, completedBy: CURRENT_MANAGER_ID, completedAt: formatNowTimestamp() }));
   }
 
+  function handleToggleResponsibleManager(managerId: string) {
+    setShiftReport((prev) => {
+      const target = prev.managers.find((manager) => manager.id === managerId);
+      const nextValue = !target?.isResponsible;
+      return {
+        ...prev,
+        managers: prev.managers.map((manager) => ({
+          ...manager,
+          isResponsible: manager.id === managerId ? nextValue : nextValue ? false : manager.isResponsible,
+        })),
+      };
+    });
+  }
+
+  function handleEditScheduledHeadcount(value: number) {
+    setShiftReport((prev) => ({
+      ...prev,
+      sections: {
+        ...prev.sections,
+        hoursHeadcount: { ...prev.sections.hoursHeadcount, scheduledHeadcount: value },
+      },
+    }));
+  }
+
   useEffect(() => {
     if (!onShift) return;
     const interval = setInterval(() => setElapsedSeconds((seconds) => seconds + 1), 1000);
@@ -196,6 +220,11 @@ export function ManagerAppHome() {
     setSheetOpen(false);
   }
 
+  function handleGoToReportFromClockSheet() {
+    setSheetOpen(false);
+    navigateForward({ type: "report" });
+  }
+
   const shiftClock = formatShiftClock(elapsedSeconds);
 
   function renderPushedScreen(s: Screen) {
@@ -220,6 +249,7 @@ export function ManagerAppHome() {
           onAddNote={handleAddNote}
           onEditNote={handleEditNote}
           onDeleteNote={handleDeleteNote}
+          onEditScheduledHeadcount={handleEditScheduledHeadcount}
           hideHeader
         />
       );
@@ -230,6 +260,7 @@ export function ManagerAppHome() {
           shift={shiftReport}
           onBack={() => navigateBack({ type: "report" })}
           currentManagerLiveStatus={{ onShift, elapsedLabel: formatElapsedLabel(elapsedSeconds) }}
+          onToggleResponsible={handleToggleResponsibleManager}
           hideHeader
         />
       );
@@ -332,7 +363,7 @@ export function ManagerAppHome() {
               <ClipboardListIcon />
             </span>
             <div className={styles.cardDetails}>
-              <span className={styles.cardTitle}>End of Shift Report</span>
+              <span className={styles.cardTitle}>{activeShift ? `${SHIFT_LABELS[activeShift]} Shift Report` : "Shift Report"}</span>
               <span className={styles.cardSubtitle}>{getShiftReportProgressSubtext(shiftReport)}</span>
             </div>
           </button>
@@ -511,6 +542,8 @@ export function ManagerAppHome() {
         onSelectShift={setClockInShift}
         onConfirm={handleConfirmClock}
         onCancel={() => setSheetOpen(false)}
+        showReportWarning={onShift && !shiftReport.completedBy}
+        onGoToReport={handleGoToReportFromClockSheet}
       />
     </div>
   );

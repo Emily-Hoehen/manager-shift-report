@@ -1,6 +1,7 @@
 "use client";
 
 import { ManagerAppScreenHeader } from "./ManagerAppScreenHeader";
+import { Switch } from "../ui/Switch";
 import { CURRENT_MANAGER_ID, getManagerShiftTimeInfo, type ShiftManager, type ShiftReportState } from "../../lib/managerShiftReportData";
 import styles from "./ManagerAppShiftManagers.module.css";
 
@@ -9,6 +10,8 @@ export type ManagerAppShiftManagersProps = {
   onBack: () => void;
   /** The logged-in manager's own live clock state from ManagerAppHome's Home-screen toggle — overrides that one manager's row instead of the clockOut-time-based guess getManagerShiftTimeInfo makes for everyone else, since the app already knows their real status. */
   currentManagerLiveStatus: { onShift: boolean; elapsedLabel: string };
+  /** Flips a manager's Responsible Manager flag — turning one on turns every other manager's off, since only one manager can be responsible for a shift at a time (see getResponsibleManager). */
+  onToggleResponsible: (managerId: string) => void;
   /** True while ManagerAppHome renders this screen's header itself (outside the slide-transition layer, so the header bar never slides — only the content beneath it does). */
   hideHeader?: boolean;
 };
@@ -22,20 +25,33 @@ export type ManagerAppShiftManagersProps = {
  * a live elapsed "Shift Time" (still on shift) or their fixed
  * "Total Shift Time" (already clocked out).
  */
-export function ManagerAppShiftManagers({ shift, onBack, currentManagerLiveStatus, hideHeader }: ManagerAppShiftManagersProps) {
+export function ManagerAppShiftManagers({ shift, onBack, currentManagerLiveStatus, onToggleResponsible, hideHeader }: ManagerAppShiftManagersProps) {
   return (
     <div className={styles.screen}>
       {!hideHeader && <ManagerAppScreenHeader title="Shift Managers" onBack={onBack} />}
       <div className={styles.main}>
         {shift.managers.map((manager) => (
-          <ManagerCard key={manager.id} manager={manager} currentManagerLiveStatus={currentManagerLiveStatus} />
+          <ManagerCard
+            key={manager.id}
+            manager={manager}
+            currentManagerLiveStatus={currentManagerLiveStatus}
+            onToggleResponsible={() => onToggleResponsible(manager.id)}
+          />
         ))}
       </div>
     </div>
   );
 }
 
-function ManagerCard({ manager, currentManagerLiveStatus }: { manager: ShiftManager; currentManagerLiveStatus: ManagerAppShiftManagersProps["currentManagerLiveStatus"] }) {
+function ManagerCard({
+  manager,
+  currentManagerLiveStatus,
+  onToggleResponsible,
+}: {
+  manager: ShiftManager;
+  currentManagerLiveStatus: ManagerAppShiftManagersProps["currentManagerLiveStatus"];
+  onToggleResponsible: () => void;
+}) {
   const isSelf = manager.id === CURRENT_MANAGER_ID;
   const info =
     isSelf && currentManagerLiveStatus.onShift
@@ -71,6 +87,13 @@ function ManagerCard({ manager, currentManagerLiveStatus }: { manager: ShiftMana
           <span>{info.rangeLabel}</span>
           <span>{info.durationLabel}</span>
         </div>
+      </div>
+
+      <span className={styles.divider} aria-hidden="true" />
+
+      <div className={styles.responsibleRow}>
+        <span className={styles.responsibleLabel}>Responsible Manager</span>
+        <Switch checked={manager.isResponsible} onChange={onToggleResponsible} ariaLabel={`Responsible Manager for ${manager.name}`} />
       </div>
     </div>
   );
