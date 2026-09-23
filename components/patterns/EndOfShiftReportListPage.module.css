@@ -337,30 +337,11 @@
 .signOffStatusCell {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  align-items: flex-start;
+  gap: 6px;
   padding-left: 24px;
   padding-right: 24px;
   min-width: 0;
-}
-
-.signOffTitle {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-family: var(--type-h4-family);
-  font-weight: var(--type-h4-weight);
-  font-size: var(--type-h4-size);
-  color: var(--color-text-lt-default);
-}
-
-.signOffTitle[data-tone="neutral"] {
-  color: var(--color-text-lt-grey);
-}
-
-.signOffTitleIcon {
-  flex-shrink: 0;
-  font-size: 16px;
-  color: var(--color-text-lt-success);
 }
 
 .signOffCaption {
@@ -527,18 +508,6 @@
 
 .page[data-theme="dark"] .personRole {
   color: var(--color-text-dt-grey);
-}
-
-.page[data-theme="dark"] .signOffTitle {
-  color: var(--color-text-dt-default);
-}
-
-.page[data-theme="dark"] .signOffTitle[data-tone="neutral"] {
-  color: var(--color-text-dt-grey);
-}
-
-.page[data-theme="dark"] .signOffTitleIcon {
-  color: var(--color-text-dt-success);
 }
 
 .page[data-theme="dark"] .signOffCaption {

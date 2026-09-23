@@ -1,0 +1,211 @@
+/* ============================================================
+   ShiftReportCalendar — the Shift Reports list's calendar view.
+   Light by default; `.calendar[data-theme="dark"]` swaps every
+   color-bearing rule to its dark-theme pair — see the DARK THEME
+   section at the end of this file.
+   ============================================================ */
+
+.calendar {
+  border-radius: 8px;
+  background-color: var(--color-neutral-100);
+  box-shadow: var(--shadow-lt-card);
+  padding: 16px;
+}
+
+.table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+/* ---------------- Weekday header ---------------- */
+
+.weekday {
+  padding: 12px 16px;
+  border: 1px solid var(--surface-lt-hairline);
+  text-align: left;
+  font-family: var(--type-h4-family);
+  font-weight: var(--type-h4-weight);
+  font-size: var(--type-h4-size);
+  color: var(--color-text-lt-grey);
+}
+
+.weekday abbr {
+  text-decoration: none;
+}
+
+/* ---------------- Day cells ---------------- */
+
+.cell {
+  height: 128px;
+  padding: 0;
+  border: 1px solid var(--surface-lt-hairline);
+  vertical-align: top;
+}
+
+.cell[data-kind="outside"] {
+  background-color: var(--surface-lt-card-sunken);
+}
+
+.cellInner,
+.cellLink {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  height: 100%;
+  padding: 12px 16px;
+}
+
+.cellLink {
+  text-decoration: none;
+  color: inherit;
+  transition: background-color 120ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.cellLink:hover {
+  background-color: var(--wash-primary-blue-15);
+}
+
+.cellLink:focus-visible {
+  outline: 2px solid var(--color-primary-500);
+  outline-offset: -2px;
+}
+
+.dateRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dateNumber {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  font-family: var(--type-h3-family);
+  font-weight: var(--type-h3-weight);
+  font-size: 16px;
+  color: var(--color-text-lt-default);
+}
+
+.cell[data-kind="outside"] .dateNumber,
+.cell[data-kind="notYet"] .dateNumber {
+  color: var(--color-neutral-500);
+}
+
+.cell[data-today] .dateNumber {
+  border-radius: 50%;
+  background-color: var(--color-primary-500);
+  color: var(--color-text-lt-white);
+}
+
+.todayTag {
+  font-family: var(--type-h4-family);
+  font-weight: var(--type-h4-weight);
+  font-size: var(--type-body-sm-size);
+  color: var(--color-text-lt-blue);
+}
+
+/* ---------------- Status caption ---------------- */
+
+.statusCaption {
+  font-family: var(--type-body-sm-family);
+  font-size: var(--type-body-sm-size);
+  color: var(--color-text-lt-grey);
+}
+
+.statusCaption[data-tone="danger"] {
+  color: var(--color-text-lt-danger);
+}
+
+/* ---------------- Responsive ---------------- */
+
+@media (max-width: 1100px) {
+  .statusCaption {
+    display: none;
+  }
+}
+
+/* Narrow screens: each cell keeps just its date and the tag's icon (a distinct glyph per tone); the
+   full status still rides along on the link's own aria-label. */
+@media (max-width: 700px) {
+  .calendar {
+    padding: 8px;
+  }
+
+  .weekday {
+    padding: 8px 4px;
+    text-align: center;
+  }
+
+  .cell {
+    height: 72px;
+  }
+
+  .cellInner,
+  .cellLink {
+    align-items: center;
+    gap: 4px;
+    padding: 8px 4px;
+  }
+
+  .todayTag,
+  .statusTitle {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cellLink {
+    transition: none;
+  }
+}
+
+/* ============================================================
+   DARK THEME
+   ============================================================ */
+
+.calendar[data-theme="dark"] {
+  background-color: var(--surface-dt-card);
+  box-shadow: var(--shadow-dt-card);
+}
+
+.calendar[data-theme="dark"] .weekday,
+.calendar[data-theme="dark"] .cell {
+  border-color: var(--surface-dt-hairline);
+}
+
+.calendar[data-theme="dark"] .weekday {
+  color: var(--color-text-dt-grey);
+}
+
+.calendar[data-theme="dark"] .cell[data-kind="outside"] {
+  background-color: var(--surface-dt-page);
+}
+
+.calendar[data-theme="dark"] .dateNumber {
+  color: var(--color-text-dt-default);
+}
+
+.calendar[data-theme="dark"] .cell[data-kind="outside"] .dateNumber,
+.calendar[data-theme="dark"] .cell[data-kind="notYet"] .dateNumber {
+  color: var(--color-neutral-600);
+}
+
+.calendar[data-theme="dark"] .cell[data-today] .dateNumber {
+  color: var(--color-text-dt-white);
+}
+
+.calendar[data-theme="dark"] .todayTag {
+  color: var(--color-text-dt-blue);
+}
+
+.calendar[data-theme="dark"] .statusCaption {
+  color: var(--color-text-dt-grey);
+}
+
+.calendar[data-theme="dark"] .statusCaption[data-tone="danger"] {
+  color: var(--color-text-dt-danger);
+}

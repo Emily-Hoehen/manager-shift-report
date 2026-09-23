@@ -5,19 +5,22 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Nav } from "./Nav";
 import { ManagerQueuePanel } from "./ManagerQueuePanel";
-import { ButtonGroup } from "../ui/ButtonGroup";
+import { ShiftReportCalendar } from "./ShiftReportCalendar";
+import { ButtonGroup, type ButtonGroupOption } from "../ui/ButtonGroup";
+import { StatusTag } from "../ui/StatusTag";
 import { ThemeToggle } from "../ui/ThemeToggle";
 import { useThemePreference } from "../../hooks/useThemePreference";
 import {
   ArrowRightIcon,
   BellIcon,
   BriefcaseIcon,
+  CalendarIcon,
   CaretDownIcon,
   CaretLeftIcon,
   CaretRightIcon,
-  CircleCheckIcon,
   ClipboardIcon,
   EnvelopeIcon,
+  ListIcon,
   MoreIcon,
   PinIcon,
   PlusCircleIcon,
@@ -62,6 +65,13 @@ function dailyReportHref(day: ShiftReportDayRow, viewerRole: ViewerRole): string
 
 const VIEWER_ROLE_OPTIONS = (Object.keys(VIEWER_ROLE_LABELS) as ViewerRole[]).map((role) => ({ id: role, label: VIEWER_ROLE_LABELS[role] }));
 
+type ListView = "list" | "calendar";
+
+const LIST_VIEW_OPTIONS: ButtonGroupOption<ListView>[] = [
+  { id: "list", label: "List", icon: <ListIcon /> },
+  { id: "calendar", label: "Calendar", icon: <CalendarIcon /> },
+];
+
 /**
  * EndOfShiftReportListPage — sits between the Manager Queue's "End of
  * Shift Report" card and the actual report (EndOfShiftReportPage):
@@ -88,6 +98,9 @@ export function EndOfShiftReportListPage() {
   // Default reading order is "current day first" (sortDaysCurrentFirst) — flipping this shows the
   // classic oldest-first calendar order instead.
   const [oldestFirst, setOldestFirst] = useState(false);
+  // List vs. month-grid calendar (ShiftReportCalendar) — starts from `?view=` and writes back to it, so
+  // the browser's Back button from a day's Daily Report lands on whichever view it was opened from.
+  const [view, setView] = useState<ListView>(() => (searchParams.get("view") === "calendar" ? "calendar" : "list"));
   // Shared across the Shift Reports grid, Daily Report, and Shift Report pages (useThemePreference),
   // persisted to localStorage so switching to dark here keeps it dark after drilling into a day's
   // report and back.
@@ -109,6 +122,14 @@ export function EndOfShiftReportListPage() {
   const days = useMemo(() => (now ? buildShiftReportMonth(monthDate, now) : []), [monthDate, now]);
   const orderedDays = now ? (oldestFirst ? days : sortDaysCurrentFirst(days, now)) : days;
   const isCurrentMonth = monthOffset === 0;
+
+  function handleViewChange(next: ListView) {
+    setView(next);
+    const url = new URL(window.location.href);
+    if (next === "calendar") url.searchParams.set("view", "calendar");
+    else url.searchParams.delete("view");
+    window.history.replaceState(null, "", url);
+  }
 
   function dayKey(day: ShiftReportDayRow): string {
     return day.date.toISOString();
@@ -157,6 +178,7 @@ export function EndOfShiftReportListPage() {
           <h1 className={styles.rollupTitle}>Shift Reports</h1>
 
           <div className={styles.rollupControls}>
+            <ButtonGroup options={LIST_VIEW_OPTIONS} value={view} onChange={handleViewChange} variant="segmented" theme={theme} aria-label="Shift Reports view" />
             <div className={styles.monthPicker}>
               <button type="button" className={styles.monthCaret} onClick={() => setMonthOffset((o) => o - 1)} aria-label="Previous month">
                 <CaretLeftIcon />
@@ -175,28 +197,34 @@ export function EndOfShiftReportListPage() {
           </div>
         </div>
 
-        <div className={styles.tableHeader}>
-          <button type="button" className={styles.sortableHeaderCell} onClick={() => setOldestFirst((v) => !v)}>
-            Day
-            <CaretDownIcon className={[styles.sortIcon, oldestFirst ? styles.sortIconFlipped : ""].filter(Boolean).join(" ")} />
-          </button>
-          <span className={styles.headerCell}>
-            Status
-            <CaretDownIcon className={styles.sortIcon} />
-          </span>
-          <span className={styles.headerCell}>
-            Signed Off By
-            <CaretDownIcon className={styles.sortIcon} />
-          </span>
-          <span className={styles.headerArrowSpacer} aria-hidden="true" />
-        </div>
+        {view === "calendar" ? (
+          now && <ShiftReportCalendar monthDate={monthDate} days={days} getDayHref={(day) => dailyReportHref(day, viewerRole)} theme={theme} />
+        ) : (
+          <>
+            <div className={styles.tableHeader}>
+              <button type="button" className={styles.sortableHeaderCell} onClick={() => setOldestFirst((v) => !v)}>
+                Day
+                <CaretDownIcon className={[styles.sortIcon, oldestFirst ? styles.sortIconFlipped : ""].filter(Boolean).join(" ")} />
+              </button>
+              <span className={styles.headerCell}>
+                Status
+                <CaretDownIcon className={styles.sortIcon} />
+              </span>
+              <span className={styles.headerCell}>
+                Signed Off By
+                <CaretDownIcon className={styles.sortIcon} />
+              </span>
+              <span className={styles.headerArrowSpacer} aria-hidden="true" />
+            </div>
 
-        <div className={styles.dayCards}>
-          {orderedDays.map((day) => (
-            <DayCard key={dayKey(day)} day={day} viewerRole={viewerRole} />
-          ))}
-          {now && orderedDays.length === 0 && <p className={styles.emptyState}>No days to show for this month.</p>}
-        </div>
+            <div className={styles.dayCards}>
+              {orderedDays.map((day) => (
+                <DayCard key={dayKey(day)} day={day} viewerRole={viewerRole} theme={theme} />
+              ))}
+              {now && orderedDays.length === 0 && <p className={styles.emptyState}>No days to show for this month.</p>}
+            </div>
+          </>
+        )}
       </main>
 
       <ManagerQueuePanel open={managerQueueOpen} onClose={() => setManagerQueueOpen(false)} theme={theme} />
@@ -217,7 +245,13 @@ function PersonChip({ name, role, avatar }: { name: string; role: string; avatar
   );
 }
 
-function DayCard({ day, viewerRole }: { day: ShiftReportDayRow; viewerRole: ViewerRole }) {
+type DayCardProps = {
+  day: ShiftReportDayRow;
+  viewerRole: ViewerRole;
+  theme: "light" | "dark";
+};
+
+function DayCard({ day, viewerRole, theme }: DayCardProps) {
   const dateLabel = getDayRowDateLabel(day.date);
   const dayInProgress = getDayInProgressLabel(day);
   const signOffStatus = getSignOffStatusDisplay(day);
@@ -232,10 +266,7 @@ function DayCard({ day, viewerRole }: { day: ShiftReportDayRow; viewerRole: View
       </div>
 
       <div className={styles.signOffStatusCell}>
-        <span className={styles.signOffTitle} data-tone={signOffStatus.tone}>
-          {signOffStatus.tone === "success" && <CircleCheckIcon className={styles.signOffTitleIcon} />}
-          {signOffStatus.title}
-        </span>
+        <StatusTag tone={signOffStatus.tone} label={signOffStatus.title} theme={theme} />
         {signOffStatus.caption && (
           <span className={styles.signOffCaption} data-tone={signOffStatus.tone}>
             {signOffStatus.caption}

@@ -279,3 +279,7 @@ export function XmarkIcon({ className }: IconProps) {
 export function LockIcon({ className }: IconProps) {
   return fa("solid", "lock", className);
 }
+
+export function ListIcon({ className }: IconProps) {
+  return fa("solid", "list", className);
+}

@@ -1,0 +1,66 @@
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-family: var(--type-h4-family);
+  font-weight: var(--type-h4-weight);
+  font-size: var(--type-body-sm-size);
+}
+
+.icon {
+  flex-shrink: 0;
+  display: inline-flex;
+}
+
+.label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------------- Light ---------------- */
+
+.tag[data-tone="success"] {
+  background-color: var(--wash-success-15);
+  color: var(--color-text-lt-success);
+}
+
+.tag[data-tone="danger"] {
+  background-color: var(--wash-danger-15);
+  color: var(--color-text-lt-danger);
+}
+
+.tag[data-tone="warning"] {
+  background-color: var(--wash-warning-15);
+  color: var(--color-text-lt-warning);
+}
+
+.tag[data-tone="neutral"] {
+  background-color: var(--wash-primary-blue-15);
+  color: var(--color-text-lt-blue);
+}
+
+/* ---------------- Dark ---------------- */
+
+.tag[data-theme="dark"][data-tone="success"] {
+  background-color: var(--wash-success-light-15);
+  color: var(--color-text-dt-success);
+}
+
+.tag[data-theme="dark"][data-tone="danger"] {
+  background-color: var(--wash-danger-light-15);
+  color: var(--color-text-dt-danger);
+}
+
+.tag[data-theme="dark"][data-tone="warning"] {
+  background-color: var(--wash-warning-light-15);
+  color: var(--color-text-dt-warning);
+}
+
+.tag[data-theme="dark"][data-tone="neutral"] {
+  background-color: var(--wash-sky-blue-dark-15);
+  color: var(--color-text-dt-blue);
+}
