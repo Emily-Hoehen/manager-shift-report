@@ -123,15 +123,17 @@
   color: var(--color-text-lt-danger);
 }
 
+/* Only shown on narrow screens (see below), where the count text itself is hidden. */
 .reportsIcon {
+  display: none;
   flex-shrink: 0;
 }
 
 /* ---------------- Responsive ---------------- */
 
 /* Narrow screens: each cell keeps just its date, the tag's icon (a distinct glyph per tone), and a
-   red alert icon when reports are missing; the full status still rides along on the link's own
-   aria-label. */
+   red alert icon in place of the count when reports are missing; the full status still rides along
+   on the link's own aria-label. */
 @media (max-width: 700px) {
   .calendar {
     padding: 8px;
@@ -158,6 +160,10 @@
   .reportsText,
   .reportsLine:not([data-missing]) {
     display: none;
+  }
+
+  .reportsIcon {
+    display: inline-flex;
   }
 }
 

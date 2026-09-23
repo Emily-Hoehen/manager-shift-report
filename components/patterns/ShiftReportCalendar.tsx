@@ -130,7 +130,11 @@ function CalendarDayCell({ cell, getDayHref, theme }: CalendarDayCellProps) {
         </span>
         <StatusTag tone={status.tone} label={status.title} theme={theme} labelClassName={styles.statusTitle} />
         <span className={styles.reportsLine} data-missing={isMissingReports || undefined}>
-          {isMissingReports && <CircleExclamationIcon className={styles.reportsIcon} />}
+          {isMissingReports && (
+            <span className={styles.reportsIcon}>
+              <CircleExclamationIcon />
+            </span>
+          )}
           <span className={styles.reportsText}>{reports.title}</span>
         </span>
       </Link>

@@ -274,7 +274,7 @@ export function getSignOffStatusDisplay(day: ShiftReportDayRow): SignOffStatusDi
   if (day.isFuture) return { title: "Upcoming", tone: "neutral" };
 
   if (day.shifts.some((s) => s.status === "dueLater")) {
-    return { title: "Pending Reports", caption: "Day In Progress", tone: "neutral" };
+    return { title: "Pending Reports", tone: "neutral" };
   }
 
   if (day.signedOffBySiteDirector) {
