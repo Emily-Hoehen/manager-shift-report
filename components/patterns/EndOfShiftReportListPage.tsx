@@ -34,13 +34,15 @@ import {
   getDayInProgressLabel,
   getDayRowDateLabel,
   getMonthLabel,
+  getShiftReportsStatusDisplay,
   getSignOffStatusDisplay,
   sortDaysCurrentFirst,
   type ShiftReportDayRow,
+  type StatusDisplay,
 } from "../../lib/shiftReportListData";
 import styles from "./EndOfShiftReportListPage.module.css";
 
-/** Whether a day is ready for the Site Director's sign-off — every shift is in, no shift was missed, and nobody's signed off yet. Signing off only happens on the Daily Report page (DailyReportPage), not from this list, so a "ready" row here just routes there instead of end-of-shift-report — this is what gates that routing. Matches getSignOffStatusDisplay's own "Pending Sign-Off" (warning) branch, just as a plain boolean callers can gate UI on. */
+/** Whether a day is ready for the Site Director's sign-off — every shift has ended (a missed report doesn't block it) and nobody's signed off yet. Signing off only happens on the Daily Report page (DailyReportPage), not from this list, so a "ready" row here just routes there instead of end-of-shift-report — this is what gates that routing. Matches getSignOffStatusDisplay's own "Pending Sign-Off" (warning) branch, just as a plain boolean callers can gate UI on. */
 function canSignOffDay(day: ShiftReportDayRow): boolean {
   return !day.isFuture && !day.signedOffBySiteDirector && getSignOffStatusDisplay(day).tone === "warning";
 }
@@ -207,7 +209,11 @@ export function EndOfShiftReportListPage() {
                 <CaretDownIcon className={[styles.sortIcon, oldestFirst ? styles.sortIconFlipped : ""].filter(Boolean).join(" ")} />
               </button>
               <span className={styles.headerCell}>
-                Status
+                Shift Reports
+                <CaretDownIcon className={styles.sortIcon} />
+              </span>
+              <span className={styles.headerCell}>
+                Sign-Off Status
                 <CaretDownIcon className={styles.sortIcon} />
               </span>
               <span className={styles.headerCell}>
@@ -245,6 +251,19 @@ function PersonChip({ name, role, avatar }: { name: string; role: string; avatar
   );
 }
 
+function StatusCell({ status, theme }: { status: StatusDisplay; theme: "light" | "dark" }) {
+  return (
+    <div className={styles.statusCell}>
+      <StatusTag tone={status.tone} label={status.title} theme={theme} />
+      {status.caption && (
+        <span className={styles.statusCaption} data-tone={status.tone}>
+          {status.caption}
+        </span>
+      )}
+    </div>
+  );
+}
+
 type DayCardProps = {
   day: ShiftReportDayRow;
   viewerRole: ViewerRole;
@@ -254,6 +273,7 @@ type DayCardProps = {
 function DayCard({ day, viewerRole, theme }: DayCardProps) {
   const dateLabel = getDayRowDateLabel(day.date);
   const dayInProgress = getDayInProgressLabel(day);
+  const shiftReportsStatus = getShiftReportsStatusDisplay(day);
   const signOffStatus = getSignOffStatusDisplay(day);
 
   const rowContent = (
@@ -265,14 +285,8 @@ function DayCard({ day, viewerRole, theme }: DayCardProps) {
         </div>
       </div>
 
-      <div className={styles.signOffStatusCell}>
-        <StatusTag tone={signOffStatus.tone} label={signOffStatus.title} theme={theme} />
-        {signOffStatus.caption && (
-          <span className={styles.signOffCaption} data-tone={signOffStatus.tone}>
-            {signOffStatus.caption}
-          </span>
-        )}
-      </div>
+      <StatusCell status={shiftReportsStatus} theme={theme} />
+      <StatusCell status={signOffStatus} theme={theme} />
 
       <div className={styles.signedOffByCell}>
         {day.signedOffBySiteDirector ? (

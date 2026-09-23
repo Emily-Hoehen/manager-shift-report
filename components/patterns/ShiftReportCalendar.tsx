@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { StatusTag } from "../ui/StatusTag";
+import { CircleExclamationIcon } from "./icons";
 import {
   getDayRowDateLabel,
+  getShiftReportsStatusDisplay,
   getSignOffStatusDisplay,
   type ShiftReportDayRow,
-  type SignOffStatusDisplay,
 } from "../../lib/shiftReportListData";
 import styles from "./ShiftReportCalendar.module.css";
 
@@ -59,17 +60,12 @@ function buildWeeks(monthDate: Date, days: ShiftReportDayRow[]): CalendarCell[][
   return weeks;
 }
 
-/** A signed-off day's own caption is its full "7:32 AM EDT | 9/18/2026" stamp — too long for a calendar cell, so only the time survives (the date is already the cell itself, give or take the next-morning sign-off). */
-function getCellCaption(status: SignOffStatusDisplay): string | undefined {
-  if (status.tone === "success") return status.caption?.split(" | ")[0];
-  return status.caption;
-}
-
 /**
  * ShiftReportCalendar — the Shift Reports list's month-at-a-glance view: a Sun–Sat grid where each day
- * that has happened shows just its latest sign-off status (getSignOffStatusDisplay) as the same StatusTag
- * the list row's own Status column uses, plus one short caption. Every such day links to that day's
- * Daily Report, exactly like its list row does.
+ * that has happened shows its latest sign-off status (getSignOffStatusDisplay) as the same StatusTag the
+ * list row's own Sign-Off Status column uses, plus a one-line shift report count underneath — red when
+ * any report is missing, since a day can be signed off with reports still missing. Every such day links
+ * to that day's Daily Report, exactly like its list row does.
  */
 export function ShiftReportCalendar({ monthDate, days, getDayHref, theme = "light" }: ShiftReportCalendarProps) {
   const weeks = buildWeeks(monthDate, days);
@@ -119,8 +115,11 @@ function CalendarDayCell({ cell, getDayHref, theme }: CalendarDayCellProps) {
 
   const { day } = cell;
   const status = getSignOffStatusDisplay(day);
-  const caption = getCellCaption(status);
-  const accessibleLabel = [getDayRowDateLabel(day.date), day.isToday ? "Today" : null, status.title, caption].filter(Boolean).join(", ");
+  const reports = getShiftReportsStatusDisplay(day);
+  const isMissingReports = reports.tone === "danger";
+  const accessibleLabel = [getDayRowDateLabel(day.date), day.isToday ? "Today" : null, status.title, reports.title, reports.caption]
+    .filter(Boolean)
+    .join(", ");
 
   return (
     <td className={styles.cell} data-kind="report" data-today={day.isToday || undefined}>
@@ -130,11 +129,10 @@ function CalendarDayCell({ cell, getDayHref, theme }: CalendarDayCellProps) {
           {day.isToday && <span className={styles.todayTag}>Today</span>}
         </span>
         <StatusTag tone={status.tone} label={status.title} theme={theme} labelClassName={styles.statusTitle} />
-        {caption && (
-          <span className={styles.statusCaption} data-tone={status.tone}>
-            {caption}
-          </span>
-        )}
+        <span className={styles.reportsLine} data-missing={isMissingReports || undefined}>
+          {isMissingReports && <CircleExclamationIcon className={styles.reportsIcon} />}
+          <span className={styles.reportsText}>{reports.title}</span>
+        </span>
       </Link>
     </td>
   );

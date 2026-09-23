@@ -105,7 +105,7 @@
 .dayHeaderRow,
 .childRow {
   display: grid;
-  grid-template-columns: 380px 400px 1fr 64px;
+  grid-template-columns: 300px 320px 320px 1fr 64px;
   align-items: center;
 }
 
@@ -332,9 +332,9 @@
   color: var(--color-text-lt-grey);
 }
 
-/* ---------------- Sign-Off Status cell ---------------- */
+/* ---------------- Shift Reports + Sign-Off Status cells ---------------- */
 
-.signOffStatusCell {
+.statusCell {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -344,17 +344,17 @@
   min-width: 0;
 }
 
-.signOffCaption {
+.statusCaption {
   font-family: var(--type-body-md-family);
   font-size: var(--type-body-md-size);
   color: var(--color-text-lt-grey);
 }
 
-.signOffCaption[data-tone="danger"] {
+.statusCaption[data-tone="danger"] {
   color: var(--color-text-lt-danger);
 }
 
-.signOffCaption[data-tone="warning"] {
+.statusCaption[data-tone="warning"] {
   color: var(--color-text-lt-warning);
 }
 
@@ -374,12 +374,12 @@
   .tableHeader,
   .dayHeaderRow,
   .childRow {
-    grid-template-columns: 240px 1fr 64px;
+    grid-template-columns: 220px 1fr 1fr 64px;
   }
 
-  .tableHeader > *:nth-child(3),
-  .dayHeaderRow > *:nth-child(3),
-  .childRow > *:nth-child(3) {
+  .tableHeader > *:nth-child(4),
+  .dayHeaderRow > *:nth-child(4),
+  .childRow > *:nth-child(4) {
     display: none;
   }
 }
@@ -411,7 +411,7 @@
 
   .dayCell,
   .childDayCell,
-  .signOffStatusCell,
+  .statusCell,
   .signedOffByCell {
     padding-left: 0;
     padding-right: 0;
@@ -510,15 +510,15 @@
   color: var(--color-text-dt-grey);
 }
 
-.page[data-theme="dark"] .signOffCaption {
+.page[data-theme="dark"] .statusCaption {
   color: var(--color-text-dt-grey);
 }
 
-.page[data-theme="dark"] .signOffCaption[data-tone="danger"] {
+.page[data-theme="dark"] .statusCaption[data-tone="danger"] {
   color: var(--color-text-dt-danger);
 }
 
-.page[data-theme="dark"] .signOffCaption[data-tone="warning"] {
+.page[data-theme="dark"] .statusCaption[data-tone="warning"] {
   color: var(--color-text-dt-warning);
 }
 

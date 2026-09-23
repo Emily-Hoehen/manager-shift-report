@@ -108,28 +108,30 @@
   color: var(--color-text-lt-blue);
 }
 
-/* ---------------- Status caption ---------------- */
+/* ---------------- Shift reports line ---------------- */
 
-.statusCaption {
+.reportsLine {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-family: var(--type-body-sm-family);
   font-size: var(--type-body-sm-size);
   color: var(--color-text-lt-grey);
 }
 
-.statusCaption[data-tone="danger"] {
+.reportsLine[data-missing] {
   color: var(--color-text-lt-danger);
+}
+
+.reportsIcon {
+  flex-shrink: 0;
 }
 
 /* ---------------- Responsive ---------------- */
 
-@media (max-width: 1100px) {
-  .statusCaption {
-    display: none;
-  }
-}
-
-/* Narrow screens: each cell keeps just its date and the tag's icon (a distinct glyph per tone); the
-   full status still rides along on the link's own aria-label. */
+/* Narrow screens: each cell keeps just its date, the tag's icon (a distinct glyph per tone), and a
+   red alert icon when reports are missing; the full status still rides along on the link's own
+   aria-label. */
 @media (max-width: 700px) {
   .calendar {
     padding: 8px;
@@ -152,7 +154,9 @@
   }
 
   .todayTag,
-  .statusTitle {
+  .statusTitle,
+  .reportsText,
+  .reportsLine:not([data-missing]) {
     display: none;
   }
 }
@@ -202,10 +206,10 @@
   color: var(--color-text-dt-blue);
 }
 
-.calendar[data-theme="dark"] .statusCaption {
+.calendar[data-theme="dark"] .reportsLine {
   color: var(--color-text-dt-grey);
 }
 
-.calendar[data-theme="dark"] .statusCaption[data-tone="danger"] {
+.calendar[data-theme="dark"] .reportsLine[data-missing] {
   color: var(--color-text-dt-danger);
 }

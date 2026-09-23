@@ -51,7 +51,7 @@ export type ShiftReportDayRow = {
   isToday: boolean;
   isFuture: boolean;
   shifts: ShiftReportRow[];
-  /** The Site Director signs off a whole day's reports together, not shift by shift — one flag per day, only ever true once every shift for that day has actually been submitted. */
+  /** The Site Director signs off a whole day's reports together, not shift by shift — one flag per day. Only possible once every shift has ended, but a shift whose report was never submitted doesn't block it. */
   signedOffBySiteDirector: boolean;
   /** "7:02 AM EDT | 9/17/2026" — only set when signedOffBySiteDirector is true. */
   signedOffAtLabel?: string;
@@ -106,35 +106,42 @@ function buildTodayRow(date: Date, now: Date): ShiftReportDayRow {
   return { date, isToday: true, isFuture: false, shifts, signedOffBySiteDirector: false };
 }
 
-/** Two illustrative past days (day-of-month) that never got their Graveyard report in — everything
- * else in the month is fully submitted (see buildPastRow). Gives the grid a real "Signed Off
- * Blocked"/overdue example to look at, and — since a day with a missed shift routes straight to that
- * shift's own report instead of the Daily Report (see opensDailyReport/EndOfShiftReportListPage) — a
- * real example of a past shift report that's still open for notes instead of locked read-only. */
-const OVERDUE_DAYS_OF_MONTH = [3, 17];
+/** Illustrative past days (day-of-month) with shift reports that never came in — every other past day
+ * is fully submitted (see buildPastRow). A missed report doesn't stop the Site Director from signing
+ * the day off, so these deliberately cover both outcomes: one or two shifts missed and signed off
+ * anyway (SIGNED_OFF_DESPITE_MISSED_DAYS), and one or all three missed and still awaiting sign-off. */
+const PAST_MISSED_SHIFTS: Record<number, ShiftKey[]> = {
+  3: ["graveyard"],
+  10: ["day", "swing", "graveyard"],
+  15: ["swing", "graveyard"],
+  17: ["graveyard"],
+};
 
-/** Whether `shiftKey` is the one OVERDUE_DAYS_OF_MONTH day's own missed Graveyard report — shared with
- * DailyReportPage (its own ShiftRow tone) and EndOfShiftReportPage (whether that shift loads unlocked
- * instead of pre-seeded "completed"), so every surface agrees about which past shift, on which day,
- * never actually got submitted. */
+/** PAST_MISSED_SHIFTS days the Site Director signed off even with reports missing. */
+const SIGNED_OFF_DESPITE_MISSED_DAYS = [3, 15];
+
+/** Whether `shiftKey`'s report on `date` is one of PAST_MISSED_SHIFTS — shared with DailyReportPage
+ * (its own ShiftRow tone) and EndOfShiftReportPage (whether that shift loads unlocked instead of
+ * pre-seeded "completed"), so every surface agrees about which past shift, on which day, never
+ * actually got submitted. */
 export function isPastMissedShift(shiftKey: ShiftKey, date: Date): boolean {
-  return shiftKey === "graveyard" && OVERDUE_DAYS_OF_MONTH.includes(date.getDate());
+  return PAST_MISSED_SHIFTS[date.getDate()]?.includes(shiftKey) ?? false;
 }
 
 /**
  * Every past day gets a stable, non-random illustrative pattern (day-of-month, not a live record) rather than
  * a real submission history — this list has no backend to read a month of history from, so every day but
  * today is flavor data, same convention as this feature's other static samples. Only today's own row (see
- * buildTodayRow) can show a shift still in progress; OVERDUE_DAYS_OF_MONTH are the only past days with a
- * shift not yet submitted — every other past day's shifts are fully submitted. Sign-off follows its own,
- * separate every-6th-day pattern below.
+ * buildTodayRow) can show a shift still in progress; PAST_MISSED_SHIFTS are the only past days with a
+ * shift not submitted — every other past day's shifts are fully submitted. Sign-off follows its own
+ * every-6th-day pattern below, with PAST_MISSED_SHIFTS days set explicitly instead.
  */
 function buildPastRow(date: Date): ShiftReportDayRow {
   const dayOfMonth = date.getDate();
-  const missedShiftKey: ShiftKey | null = SHIFT_ORDER.find((key) => isPastMissedShift(key, date)) ?? null;
+  const hasMissedShift = SHIFT_ORDER.some((key) => isPastMissedShift(key, date));
 
   const shifts: ShiftReportRow[] = SHIFT_ORDER.map((shiftKey) => {
-    if (shiftKey === missedShiftKey) return { shiftKey, status: "notSubmitted" };
+    if (isPastMissedShift(shiftKey, date)) return { shiftKey, status: "notSubmitted" };
 
     const leadManager = INITIAL_SHIFT_REPORTS[shiftKey].managers[0];
     const completedAtLabel = formatClockAndDateLabel(date, SHIFT_TYPICAL_COMPLETION_MINUTES[shiftKey] + (dayOfMonth % 9));
@@ -147,10 +154,7 @@ function buildPastRow(date: Date): ShiftReportDayRow {
       completedAtLabel,
     };
   });
-  // A day with a missed shift can never be signed off (see getSignOffStatusDisplay/getShiftReportRowV2Display's
-  // own "notSubmitted" branches, checked before signedOffBySiteDirector) — forced false here just keeps this
-  // row internally consistent rather than relying on that ordering alone.
-  const signedOffBySiteDirector = missedShiftKey === null && dayOfMonth % 6 !== 0;
+  const signedOffBySiteDirector = hasMissedShift ? SIGNED_OFF_DESPITE_MISSED_DAYS.includes(dayOfMonth) : dayOfMonth % 6 !== 0;
   const signedOffAtLabel = signedOffBySiteDirector
     ? formatClockAndDateLabel(new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1), SITE_DIRECTOR_SIGNOFF_MINUTES + (dayOfMonth % 10))
     : undefined;
@@ -232,26 +236,44 @@ export function getDayInProgressLabel(day: ShiftReportDayRow): string | undefine
   return day.shifts.some((s) => s.status === "dueLater") ? "Day In Progress" : undefined;
 }
 
-export type SignOffStatusTone = "success" | "warning" | "danger" | "neutral";
-export type SignOffStatusDisplay = { title: string; caption?: string; tone: SignOffStatusTone };
+export type StatusTone = "success" | "warning" | "danger" | "neutral";
+export type SignOffStatusTone = StatusTone;
+export type StatusDisplay = { title: string; caption?: string; tone: StatusTone };
+export type SignOffStatusDisplay = StatusDisplay;
+
+/**
+ * The day row's own "Shift Reports" column — how many of the day's three shift reports came in. Still
+ * underway (neutral, with whichever report is due next), one or more never submitted once the day
+ * ended (danger, naming which), or all three in (success).
+ */
+export function getShiftReportsStatusDisplay(day: ShiftReportDayRow): StatusDisplay {
+  const submitted = getCompletedCount(day);
+  const title = `${submitted}/${day.shifts.length} Shifts Submitted`;
+
+  const nextDue = day.shifts.find((s) => s.status === "dueLater");
+  if (nextDue) return { title, caption: nextDue.dueLabel, tone: "neutral" };
+
+  const missed = day.shifts.filter((s) => s.status === "notSubmitted");
+  if (missed.length === day.shifts.length) return { title, caption: "No Shift Reports Submitted", tone: "danger" };
+  if (missed.length > 0) {
+    const label = missed.map((s) => SHIFT_LABELS[s.shiftKey]).join(", ");
+    return { title, caption: `${label} Shift${missed.length === 1 ? "" : "s"} Not Submitted`, tone: "danger" };
+  }
+
+  return { title, tone: "success" };
+}
 
 /**
  * The day row's own "Sign-Off Status" column (Figma fileKey 0UJDRcrFiXkn16yfc2MUEW, node 229:5034) — one of
- * four states: still underway ("Pending Reports"), a manager missed a submission after the day ended
- * ("Sign Off Blocked"), every report is in but the Site Director hasn't reviewed it yet ("Pending
- * Sign-Off"), or the Site Director has already signed off ("Signed Off").
+ * three states: still underway ("Pending Reports"), the day has ended but the Site Director hasn't
+ * reviewed it yet ("Pending Sign-Off"), or the Site Director has already signed off ("Signed Off").
+ * Missing shift reports don't block sign-off — getShiftReportsStatusDisplay reports those separately.
  */
 export function getSignOffStatusDisplay(day: ShiftReportDayRow): SignOffStatusDisplay {
   if (day.isFuture) return { title: "Upcoming", tone: "neutral" };
 
   if (day.shifts.some((s) => s.status === "dueLater")) {
     return { title: "Pending Reports", caption: "Day In Progress", tone: "neutral" };
-  }
-
-  const missed = day.shifts.filter((s) => s.status === "notSubmitted");
-  if (missed.length > 0) {
-    const label = missed.map((s) => SHIFT_LABELS[s.shiftKey]).join(", ");
-    return { title: "Sign Off Blocked", caption: `${label} Shift${missed.length === 1 ? "" : "s"} Not Submitted`, tone: "danger" };
   }
 
   if (day.signedOffBySiteDirector) {
