@@ -18,6 +18,7 @@ import {
   CaretDownIcon,
   CaretLeftIcon,
   CaretRightIcon,
+  CircleExclamationIcon,
   ClipboardIcon,
   EnvelopeIcon,
   ListIcon,
@@ -42,9 +43,9 @@ import {
 } from "../../lib/shiftReportListData";
 import styles from "./EndOfShiftReportListPage.module.css";
 
-/** Whether a day is ready for the Site Director's sign-off — every shift has ended (a missed report doesn't block it) and nobody's signed off yet. Signing off only happens on the Daily Report page (DailyReportPage), not from this list, so a "ready" row here just routes there instead of end-of-shift-report — this is what gates that routing. Matches getSignOffStatusDisplay's own "Pending Sign-Off" (warning) branch, just as a plain boolean callers can gate UI on. */
+/** Whether a day is ready for the Site Director's sign-off — every shift has ended (a missed report doesn't block it) and nobody's signed off yet. Signing off only happens on the Daily Report page (DailyReportPage), not from this list, so a "ready" row here just routes there instead of end-of-shift-report — this is what gates that routing. Matches getSignOffStatusDisplay's own "Not Signed Off" branch, just as a plain boolean callers can gate UI on. */
 function canSignOffDay(day: ShiftReportDayRow): boolean {
-  return !day.isFuture && !day.signedOffBySiteDirector && getSignOffStatusDisplay(day).tone === "warning";
+  return !day.isFuture && !day.signedOffBySiteDirector && !day.shifts.some((s) => s.status === "dueLater");
 }
 
 /** Whether a day's row actually opens the Daily Report instead of toggling anything in place — every day but a genuinely future one now qualifies (see ShiftReportDayRow/buildShiftReportMonth, which no longer produces future rows at all): a signed-off or ready-to-sign-off day opens it read-through-to-sign-off, and today opens it too so a Site Director can watch the day's shifts land live (Figma fileKey 0UJDRcrFiXkn16yfc2MUEW, node 247:21796). */
@@ -180,7 +181,20 @@ export function EndOfShiftReportListPage() {
           <h1 className={styles.rollupTitle}>Shift Reports</h1>
 
           <div className={styles.rollupControls}>
-            <ButtonGroup options={LIST_VIEW_OPTIONS} value={view} onChange={handleViewChange} variant="segmented" theme={theme} aria-label="Shift Reports view" />
+            {/* Same styling as the Shift Report page's Day/Swing/Graveyard toggle (EndOfShiftReportPage). */}
+            <ButtonGroup
+              options={LIST_VIEW_OPTIONS}
+              value={view}
+              onChange={handleViewChange}
+              theme={theme}
+              variant="segmented"
+              trackColor={theme === "dark" ? "var(--color-neutral-900)" : "var(--color-neutral-200)"}
+              trackElevated
+              thumbColor={theme === "dark" ? "var(--color-neutral-800)" : "var(--color-neutral-100)"}
+              thumbElevated
+              activeTextColor={theme === "dark" ? "var(--color-text-dt-blue)" : "var(--color-text-lt-blue)"}
+              aria-label="Shift Reports view"
+            />
             <div className={styles.monthPicker}>
               <button type="button" className={styles.monthCaret} onClick={() => setMonthOffset((o) => o - 1)} aria-label="Previous month">
                 <CaretLeftIcon />
@@ -264,6 +278,24 @@ function StatusCell({ status, theme }: { status: StatusDisplay; theme: "light" |
   );
 }
 
+/** The Shift Reports column — plain text rather than a StatusTag, so the row's only tag is its sign-off status. Missing reports still stand out: red, with an alert icon. */
+function ShiftReportsCell({ status }: { status: StatusDisplay }) {
+  const isMissing = status.tone === "danger";
+  return (
+    <div className={styles.statusCell}>
+      <span className={styles.shiftReportsTitle} data-tone={status.tone}>
+        {isMissing && <CircleExclamationIcon className={styles.shiftReportsIcon} />}
+        {status.title}
+      </span>
+      {status.caption && (
+        <span className={styles.statusCaption} data-tone={status.tone}>
+          {status.caption}
+        </span>
+      )}
+    </div>
+  );
+}
+
 type DayCardProps = {
   day: ShiftReportDayRow;
   viewerRole: ViewerRole;
@@ -285,7 +317,7 @@ function DayCard({ day, viewerRole, theme }: DayCardProps) {
         </div>
       </div>
 
-      <StatusCell status={shiftReportsStatus} theme={theme} />
+      <ShiftReportsCell status={shiftReportsStatus} />
       <StatusCell status={signOffStatus} theme={theme} />
 
       <div className={styles.signedOffByCell}>

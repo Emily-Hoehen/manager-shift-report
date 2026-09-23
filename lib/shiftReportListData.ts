@@ -266,7 +266,8 @@ export function getShiftReportsStatusDisplay(day: ShiftReportDayRow): StatusDisp
 /**
  * The day row's own "Sign-Off Status" column (Figma fileKey 0UJDRcrFiXkn16yfc2MUEW, node 229:5034) — one of
  * three states: still underway ("Pending Reports"), the day has ended but the Site Director hasn't
- * reviewed it yet ("Pending Sign-Off"), or the Site Director has already signed off ("Signed Off").
+ * reviewed it yet ("Not Signed Off" — red, since sign-off is due the following morning and every
+ * past day's is already late), or the Site Director has already signed off ("Signed Off").
  * Missing shift reports don't block sign-off — getShiftReportsStatusDisplay reports those separately.
  */
 export function getSignOffStatusDisplay(day: ShiftReportDayRow): SignOffStatusDisplay {
@@ -280,6 +281,6 @@ export function getSignOffStatusDisplay(day: ShiftReportDayRow): SignOffStatusDi
     return { title: "Signed Off", caption: day.signedOffAtLabel, tone: "success" };
   }
 
-  return { title: "Pending Sign-Off", caption: "Awaiting Site Director", tone: "warning" };
+  return { title: "Not Signed Off", tone: "danger" };
 }
 

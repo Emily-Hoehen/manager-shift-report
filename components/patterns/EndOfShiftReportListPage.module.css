@@ -344,6 +344,24 @@
   min-width: 0;
 }
 
+.shiftReportsTitle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--type-h4-family);
+  font-weight: var(--type-h4-weight);
+  font-size: var(--type-h4-size);
+  color: var(--color-text-lt-default);
+}
+
+.shiftReportsTitle[data-tone="danger"] {
+  color: var(--color-text-lt-danger);
+}
+
+.shiftReportsIcon {
+  flex-shrink: 0;
+}
+
 .statusCaption {
   font-family: var(--type-body-md-family);
   font-size: var(--type-body-md-size);
@@ -520,6 +538,14 @@
 
 .page[data-theme="dark"] .statusCaption[data-tone="warning"] {
   color: var(--color-text-dt-warning);
+}
+
+.page[data-theme="dark"] .shiftReportsTitle {
+  color: var(--color-text-dt-default);
+}
+
+.page[data-theme="dark"] .shiftReportsTitle[data-tone="danger"] {
+  color: var(--color-text-dt-danger);
 }
 
 .page[data-theme="dark"] .rowArrow {
